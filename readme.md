@@ -1,10 +1,5 @@
-go-BeagleBone Hardware
-=======
 
-BeagleBone Hardware Controls (GPIO,PWM,TTY,DTO) for the go language
-(and for other Linux Embedded Devices)
-
-## About
+### go Linux Embedded Fast GPIO, PWM and SerialTTY Library
 
 This is a small library to make dealing with Linux embedded devices in go easier.
 It is mainly written for the BeagleBone Black but with the exception of the Memory Mapped Fast GPIO,
@@ -24,13 +19,8 @@ if you are looking for go-support for OneWire / DS18x20 devices.
 I've also written an article about configuring PINS on the BeagleBone Black using Device-tree Overlays.
 [Check It Out](http://kilobaser.com/blog/2014-05-30-beagle-bone-black-devicetreeoverlay-generator)
 
-## Usage
+### Use it
 
-    #> go get github.com/btittelbach/go-bbhw
 
-    import "github.com/btittelbach/go-bbhw"
 
-    bbhw.
-
-## Keywords
-go golang raspberry beaglebone black white GPIO PWM fast mmap memory mapped am33xx am335xx serial tty serial raw rawtty pinmux 0x194 0x190 0x44E07000 cleardataout setdataout
+**Keywords:** go golang raspberry beaglebone black white GPIO PWM fast mmap memory mapped am33xx am335xx serial tty serial raw rawtty pinmux 0x194 0x190 0x44E07000 cleardataout setdataout
