@@ -15,7 +15,6 @@ func findSlotsFile() (sfile string, err error) {
 	re1 := regexp.MustCompile(path_re1 + "$")
 	var tdir string
 	findDeviceTreeSlotsFileBBB := func(path string, info os.FileInfo, err error) error {
-		LogPins_.Print(path)
 		if !info.IsDir() {
 			return nil
 		}

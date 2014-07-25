@@ -46,6 +46,8 @@ func findPWMDir(bbb_pin string) (tdir string, err error) {
 	err = filepath.Walk(path_base, findPWMDirBBB)
 	if err == foundit {
 		err = nil
+	} else {
+		err = fmt.Errorf("NotFound")
 	}
 	return
 }
