@@ -180,6 +180,25 @@ func (gpio *SysfsGPIO) SetDirection(direction int) error {
 	return nil
 }
 
+//this inverts the meaning of 0 and 1 in /sys/class/gpio/gpio*/value
+func (gpio *SysfsGPIO) SetActiveLow(activelow bool) error {
+	if gpio == nil {
+		panic("gpio == nil")
+	}
+	df, err := os.OpenFile(fmt.Sprintf("/sys/class/gpio/gpio%d/active_low", gpio.Number),
+		os.O_WRONLY|os.O_SYNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer df.Close()
+	if activelow {
+		fmt.Fprintln(df, "1")
+	} else {
+		fmt.Fprintln(df, "0")
+	}
+	return nil
+}
+
 func (gpio *SysfsGPIO) GetState() (state bool, err error) {
 	if gpio == nil {
 		panic("gpio == nil")
