@@ -138,12 +138,21 @@ func (pwm *PWMLine) SetDuty(fraction float64) {
 }
 
 func (pwm *PWMLine) SetPWMFreq(freq_hz float64) {
-	period := time.Duration(float64(time.Second) / freq_hz)
-	pwm.SetPWM(period, period/2)
+	pwm.SetPWMFreqDuty(freq_hz, 0.5)
+}
+
+func (pwm *PWMLine) SetPWMFreqDuty(freq_hz, fraction float64) {
+	if fraction > 1.0 {
+		fraction = 1.0
+	} else if fraction < 0.0 {
+		fraction = 0.0
+	}
+	period := float64(time.Second) / freq_hz
+	pwm.SetPWM(time.Duration(period), time.Duration(period*fraction))
 }
 
 func (pwm *PWMLine) SetStepperRPM(rpm, stepsperrot uint32) {
-	pwm.SetPWMFreq(float64(rpm*stepsperrot) / 60.0)
+	pwm.SetPWMFreqDuty(float64(rpm*stepsperrot)/60.0, 0.1)
 }
 
 func (pwm *PWMLine) Close() {
