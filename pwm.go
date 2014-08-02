@@ -119,6 +119,23 @@ func (pwm *PWMLine) SetPWM(period, duty time.Duration) {
 	}
 }
 
+func (pwm *PWMLine) GetPWM() (period, duty time.Duration) {
+	var buffer []byte = make([]byte, 32)
+	pwm.fd_period.Seek(0, 0)
+	numread, err := pwm.fd_period.Read(buffer)
+	oldperiod, err := strconv.ParseInt(string(buffer[0:numread-1]), 10, 64)
+	if err == nil {
+		period = time.Duration(oldperiod) * time.Nanosecond
+	}
+	pwm.fd_duty.Seek(0, 0)
+	numread, err = pwm.fd_duty.Read(buffer)
+	oldduty, err := strconv.ParseInt(string(buffer[0:numread-1]), 10, 64)
+	if err == nil {
+		duty = time.Duration(oldduty) * time.Nanosecond
+	}
+	return
+}
+
 // set PWM duty to fraction between 0.0 and 1.0
 func (pwm *PWMLine) SetDuty(fraction float64) {
 	if fraction > 1.0 {
@@ -151,8 +168,15 @@ func (pwm *PWMLine) SetPWMFreqDuty(freq_hz, fraction float64) {
 	pwm.SetPWM(time.Duration(period), time.Duration(period*fraction))
 }
 
-func (pwm *PWMLine) SetStepperRPM(rpm, stepsperrot uint32) {
-	pwm.SetPWMFreqDuty(float64(rpm*stepsperrot)/60.0, 0.1)
+func (pwm *PWMLine) GetPWMFreqDuty() (freq_hz, fraction float64) {
+	period, duty := pwm.GetPWM()
+	freq_hz = float64(time.Second) / float64(period)
+	fraction = float64(duty) / float64(period)
+	return
+}
+
+func (pwm *PWMLine) SetStepperRPM(rpm, stepsperrot float64) {
+	pwm.SetPWMFreqDuty(rpm*stepsperrot/60.0, 0.1)
 }
 
 func (pwm *PWMLine) Close() {
