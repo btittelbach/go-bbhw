@@ -179,6 +179,11 @@ func (pwm *PWMLine) SetStepperRPM(rpm, stepsperrot float64) {
 	pwm.SetPWMFreqDuty(rpm*stepsperrot/60.0, 0.1)
 }
 
+func (pwm *PWMLine) GetStepperRPM(stepsperrot float64) float64 {
+	freq_hz, _ := pwm.GetPWMFreqDuty()
+	return freq_hz / stepsperrot * 60.0
+}
+
 func (pwm *PWMLine) Close() {
 	pwm.fd_duty.Close()
 	pwm.fd_period.Close()
