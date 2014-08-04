@@ -21,8 +21,7 @@ Before writing it, I had a look at aqua's raspberry lib, which was too basic for
 but which is why the SysFSGPIO Interface looks similar. You should check out his [repository](https://github.com/aqua/raspberrypi)
 if you are looking for go-support for OneWire / DS18x20 devices.
 
-I've also written an article about configuring PINS on the BeagleBone Black using Device-tree Overlays.
-[Check It Out](http://kilobaser.com/blog/2014-05-30-beagle-bone-black-devicetreeoverlay-generator)
+I've also written two blogs about [using PINS on the BeagleBone Black](http://kilobaser.com/blog/2014-07-15-beaglebone-black-gpios) and [making Device-Tree Overlays](http://kilobaser.com/blog/2014-07-28-beaglebone-black-devicetreeoverlay-generator) to configure the BeagleBone Black.
 
 ## Usage
 
@@ -31,6 +30,8 @@ I've also written an article about configuring PINS on the BeagleBone Black usin
     import "github.com/btittelbach/go-bbhw"
 
     bbhw.
+
+View the API docs [here](http://godoc.org/github.com/btittelbach/go-bbhw)
 
 ## Keywords
 go golang raspberry beaglebone black white GPIO PWM fast mmap memory mapped am33xx am335xx serial tty serial raw rawtty pinmux 0x194 0x190 0x44E07000 cleardataout setdataout
