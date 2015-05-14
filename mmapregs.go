@@ -20,8 +20,8 @@ var mmaped_gpio_register_ *mappedRegisters
 var mmaped_lock_ sync.Mutex
 
 const ( // AM335x Memory Addresses
-	gpio0_offset_                = 0x44E07000
-	gpio1_offset_                = 0x4804C000
+	omap4_gpio0_offset_           = 0x44E07000
+	omap4_gpio1_offset_                = 0x4804C000
 	gpio_pagesize_               = 0x1000 //4KiB
 	spinlock_offset_             = 0x480CA000
 	spinlock_pagesize_           = 0x1000 //4KiB
@@ -54,7 +54,7 @@ func verifyAddrIsTIOmap4(addr uint) bool {
 
 func newGPIORegMMap() (mmapreg *mappedRegisters, err error) {
 	//Verify our memory addresses are actually correct
-	if !(verifyAddrIsTIOmap4(gpio0_offset_) && verifyAddrIsTIOmap4(gpio1_offset_) && verifyAddrIsTIOmap4(gpio2_offset_) && verifyAddrIsTIOmap4(gpio3_offset_)) {
+	if !(verifyAddrIsTIOmap4(omap4_gpio0_offset_) && verifyAddrIsTIOmap4(omap4_gpio1_offset_) && verifyAddrIsTIOmap4(gpio2_offset_) && verifyAddrIsTIOmap4(gpio3_offset_)) {
 		return nil, fmt.Errorf("Looks like we aren't on a AM33xx CPU! Please check your Datasheet and update the code (github) or stick to the SysFSGPIOs")
 	}
 	mmapreg = new(mappedRegisters)
@@ -64,12 +64,12 @@ func newGPIORegMMap() (mmapreg *mappedRegisters, err error) {
 	if err != nil {
 		return nil, err
 	}
-	mmapreg.memgpiochipreg[0], err = syscall.Mmap(int(mmapreg.memfd.Fd()), gpio0_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
+	mmapreg.memgpiochipreg[0], err = syscall.Mmap(int(mmapreg.memfd.Fd()), omap4_gpio0_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
-	mmapreg.memgpiochipreg[1], err = syscall.Mmap(int(mmapreg.memfd.Fd()), gpio1_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
+	mmapreg.memgpiochipreg[1], err = syscall.Mmap(int(mmapreg.memfd.Fd()), omap4_gpio1_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
