@@ -520,16 +520,20 @@ func CheckDirectionOrPanic(gpio GPIOControllablePin) int {
 	return r
 }
 
-func Step(gpio GPIOControllablePin, steps uint32, delay time.Duration, abortcheck func() bool) (err error) {
+func Step(gpio GPIOControllablePin, steps uint32, delay time.Duration, abortcheck func() bool) (c uint32, err error) {
 	var curstate, oldstate bool
 	oldstate, err = gpio.GetState()
 	if err != nil {
 		log.Println("Step GetState Error:", err)
 		return
 	}
+	//on abort or return set old state
 	defer gpio.SetState(oldstate)
+	// fix return value
+	// due to defer above, we always finish last step, so the number of actual steps takes is roundup(c/2)
+	// which is what we want to return
+	defer func() { c += c % 2; c /= 2 }()
 	curstate = oldstate
-	var c uint32
 	for c = 0; c < steps*2; c++ {
 		curstate = !curstate
 		err = gpio.SetState(curstate)
