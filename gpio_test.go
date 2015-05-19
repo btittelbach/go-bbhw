@@ -3,6 +3,8 @@ package bbhw
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"testing"
 	"time"
 )
@@ -173,4 +175,28 @@ func Test_MmappedGPIOwCableInGoroutines(t *testing.T) {
 		t.Error("3: ing.GetState() != outg.SetState()")
 	}
 	//Step(outg, 20, time.Duration(200)*time.Millisecond, nil)
+}
+
+func Test_FakeGPIO(t *testing.T) {
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	f1 := NewFakeNamedGPIO("fake 1", OUT, logger)
+	f2 := NewFakeGPIO(2, IN)
+	//next line should not generate output
+	f2.FakeInput(false)
+	FakeGPIODefaultLogTarget_ = logger
+	//now this should write output
+	f2.FakeInput(true)
+	if GetStateOrPanic(f2) != true {
+		t.Error("f2 fake input did not work")
+	}
+	f1.SetState(true)
+	f1.ConnectTo(f2)
+	f1.SetState(false)
+	if GetStateOrPanic(f1) != false {
+		t.Error("f1 SetState did not work")
+	}
+	if GetStateOrPanic(f2) != false {
+		t.Error("Fake connection to f2 did not work")
+	}
+
 }
