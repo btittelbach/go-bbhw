@@ -81,6 +81,8 @@ func (gpio *FakeGPIO) SetState(state bool) error {
 	return nil
 }
 
+func (gpio *FakeGPIO) SetStateNow(state bool) error { return gpio.SetState(state) }
+
 func (gpio *FakeGPIO) Close() {
 	gpio = nil
 }

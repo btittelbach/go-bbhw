@@ -199,6 +199,8 @@ func (gpio *SysfsGPIO) SetState(state bool) error {
 	return err
 }
 
+func (gpio *SysfsGPIO) SetStateNow(state bool) error { return gpio.SetState(state) }
+
 func (gpio *SysfsGPIO) Close() {
 	gpio.fd.Close()
 	gpio = nil

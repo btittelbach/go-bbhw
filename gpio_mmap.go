@@ -76,6 +76,8 @@ func (gpio *MMappedGPIO) SetState(state bool) error {
 	return nil
 }
 
+func (gpio *MMappedGPIO) SetStateNow(state bool) error { return gpio.SetState(state) }
+
 func (gpio *MMappedGPIO) GetState() (state bool, err error) {
 	mmapreg := getgpiommap()
 	// sync / flush memory

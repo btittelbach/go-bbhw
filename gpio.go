@@ -9,6 +9,7 @@ import (
 
 type GPIOControllablePin interface {
 	SetState(bool) error
+	SetStateNow(bool) error
 	GetState() (bool, error)
 	CheckDirection() (int, error)
 }
