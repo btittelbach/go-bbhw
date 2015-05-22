@@ -8,9 +8,9 @@ type MMappedGPIOInCollection struct {
 }
 
 type MMappedGPIOCollectionFactory struct {
-	//4 * 4byte arrays to be copied
-	gpios_to_set   [][]byte
-	gpios_to_clear [][]byte
+	//4 32bit arrays to be copied to register
+	gpios_to_set   []uint32
+	gpios_to_clear []uint32
 	record_changes bool
 }
 
@@ -19,25 +19,18 @@ type MMappedGPIOCollectionFactory struct {
 func NewMMapedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory) {
 	mmapreg := getgpiommap()
 	gpiocf = new(MMappedGPIOCollectionFactory)
-	gpiocf.gpios_to_set = make([][]byte, len(mmapreg.memgpiochipreg))
-	gpiocf.gpios_to_clear = make([][]byte, len(mmapreg.memgpiochipreg))
-	for i, _ := range mmapreg.memgpiochipreg {
-		gpiocf.gpios_to_set[i] = make([]byte, 4)
-		gpiocf.gpios_to_clear[i] = make([]byte, 4)
-	}
+	gpiocf.gpios_to_set = make([]uint32, len(mmapreg.memgpiochipreg32))
+	gpiocf.gpios_to_clear = make([]uint32, len(mmapreg.memgpiochipreg32))
 	return gpiocf
 }
 
 func (gpiocf *MMappedGPIOCollectionFactory) EndTransactionApplySetStates() {
 	mmapreg := getgpiommap()
 	for i, _ := range gpiocf.gpios_to_set {
-		//FIXME: do a 32bit write/move instead of 4 bytewise
-		for j := 0; j < len(gpiocf.gpios_to_set[i]); j++ {
-			mmapreg.memgpiochipreg[i][intgpio_setdataout_+j] = gpiocf.gpios_to_set[i][j]
-			mmapreg.memgpiochipreg[i][intgpio_cleardataout_+j] = gpiocf.gpios_to_clear[i][j]
-			gpiocf.gpios_to_set[i][j] = 0
-			gpiocf.gpios_to_clear[i][j] = 0
-		}
+		mmapreg.memgpiochipreg32[i][intgpio_setdataout_o32_] = gpiocf.gpios_to_set[i]
+		mmapreg.memgpiochipreg32[i][intgpio_cleardataout_o32_] = gpiocf.gpios_to_clear[i]
+		gpiocf.gpios_to_set[i] = 0
+		gpiocf.gpios_to_clear[i] = 0
 	}
 	gpiocf.record_changes = false
 }
@@ -62,11 +55,11 @@ func (gpio *MMappedGPIOInCollection) SetStateNow(state bool) error {
 
 func (gpio *MMappedGPIOInCollection) SetFutureState(state bool) error {
 	if state {
-		gpio.collection.gpios_to_set[gpio.chipid][gpio.gpioid/8] |= byte(1 << (gpio.gpioid % 8))
-		gpio.collection.gpios_to_clear[gpio.chipid][gpio.gpioid/8] &= ^byte(1 << (gpio.gpioid % 8))
+		gpio.collection.gpios_to_set[gpio.chipid] |= uint32(1 << gpio.gpioid)
+		gpio.collection.gpios_to_clear[gpio.chipid] &= ^uint32(1 << gpio.gpioid)
 	} else {
-		gpio.collection.gpios_to_clear[gpio.chipid][gpio.gpioid/8] |= byte(1 << (gpio.gpioid % 8))
-		gpio.collection.gpios_to_set[gpio.chipid][gpio.gpioid/8] &= ^byte(1 << (gpio.gpioid % 8))
+		gpio.collection.gpios_to_clear[gpio.chipid] |= uint32(1 << gpio.gpioid)
+		gpio.collection.gpios_to_set[gpio.chipid] &= ^uint32(1 << gpio.gpioid)
 	}
 	return nil
 }
@@ -76,10 +69,10 @@ func (gpio *MMappedGPIOInCollection) SetFutureState(state bool) error {
 /// state returns the future state
 /// err returns nil
 func (gpio *MMappedGPIOInCollection) GetFutureState() (state_known, state bool, err error) {
-	state = gpio.collection.gpios_to_set[gpio.chipid][(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0
+	state = gpio.collection.gpios_to_set[gpio.chipid]&uint32(1<<gpio.gpioid) > 0
 	state_known = state
 	if !state_known {
-		state_known = gpio.collection.gpios_to_clear[gpio.chipid][(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0
+		state_known = gpio.collection.gpios_to_clear[gpio.chipid]&uint32(1<<gpio.gpioid) > 0
 	}
 	return
 }

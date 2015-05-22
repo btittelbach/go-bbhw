@@ -3,6 +3,7 @@ package bbhw
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"sync"
 	"syscall"
 	"unsafe"
@@ -11,17 +12,18 @@ import (
 /// This ONLY works on the BeagleBone or similar AM335xx devices !!!
 
 type mappedRegisters struct {
-	memfd          *os.File
-	memgpiochipreg [][]byte
-	reglock        sync.Mutex
+	memfd            *os.File
+	memgpiochipreg   [][]byte
+	memgpiochipreg32 [][]uint32
+	reglock          sync.Mutex
 }
 
 var mmaped_gpio_register_ *mappedRegisters
 var mmaped_lock_ sync.Mutex
 
 const ( // AM335x Memory Addresses
-	omap4_gpio0_offset_           = 0x44E07000
-	omap4_gpio1_offset_                = 0x4804C000
+	omap4_gpio0_offset_          = 0x44E07000
+	omap4_gpio1_offset_          = 0x4804C000
 	gpio_pagesize_               = 0x1000 //4KiB
 	spinlock_offset_             = 0x480CA000
 	spinlock_pagesize_           = 0x1000 //4KiB
@@ -29,11 +31,18 @@ const ( // AM335x Memory Addresses
 	gpio3_offset_                = 0x481AE000
 	pinmux_controlmodule_offset_ = 0x44E10000
 	intgpio_setdataout_          = 0x194
+	intgpio_setdataout_o32_      = 0x194 / 4
 	intgpio_cleardataout_        = 0x190
+	intgpio_cleardataout_o32_    = 0x190 / 4
 	intgpio_datain_              = 0x138
+	intgpio_datain_o32_          = 0x138 / 4
 	intgpio_debounceenable_      = 0x150
+	intgpio_debounceenable_o32_  = 0x150 / 4
 	intgpio_debouncetime_        = 0x154
+	intgpio_debouncetime_o32_    = 0x154 / 4
 	intgpio_output_enabled_      = 0x134
+	intgpio_output_enabled_o32_  = 0x134 / 4
+	BYTES_IN_UINT32              = 4 // bytes
 )
 
 func verifyAddrIsTIOmap4(addr uint) bool {
@@ -52,6 +61,24 @@ func verifyAddrIsTIOmap4(addr uint) bool {
 	return string(buf)[0:13] == "ti,omap4-gpio"
 }
 
+//warning: you must keep the []byte array/slice around
+//so that the []uint32 data will not be garbage collected
+func castByteSliceToUint32Slice(raw []byte) []uint32 {
+	rawlen := len(raw)
+	// Get the slice header
+	header := *(*reflect.SliceHeader)(unsafe.Pointer(&raw))
+
+	// The length and capacity of the slice are different.
+	header.Len /= BYTES_IN_UINT32
+	header.Cap /= BYTES_IN_UINT32
+
+	// Convert slice header to an []int32
+	if rawlen != len(raw) {
+		panic("NO we did NOT want to change the []byte slice, just create a []uint32 slice pointing to the same data")
+	}
+	return *(*[]uint32)(unsafe.Pointer(&header))
+}
+
 func newGPIORegMMap() (mmapreg *mappedRegisters, err error) {
 	//Verify our memory addresses are actually correct
 	if !(verifyAddrIsTIOmap4(omap4_gpio0_offset_) && verifyAddrIsTIOmap4(omap4_gpio1_offset_) && verifyAddrIsTIOmap4(gpio2_offset_) && verifyAddrIsTIOmap4(gpio3_offset_)) {
@@ -59,31 +86,37 @@ func newGPIORegMMap() (mmapreg *mappedRegisters, err error) {
 	}
 	mmapreg = new(mappedRegisters)
 	mmapreg.memgpiochipreg = make([][]byte, 4)
+	mmapreg.memgpiochipreg32 = make([][]uint32, 4)
 	//Now MemoryMap
 	mmapreg.memfd, err = os.OpenFile("/dev/mem", os.O_RDWR, 0666)
 	if err != nil {
 		return nil, err
 	}
+
 	mmapreg.memgpiochipreg[0], err = syscall.Mmap(int(mmapreg.memfd.Fd()), omap4_gpio0_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
+	mmapreg.memgpiochipreg32[0] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[0])
 	mmapreg.memgpiochipreg[1], err = syscall.Mmap(int(mmapreg.memfd.Fd()), omap4_gpio1_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
+	mmapreg.memgpiochipreg32[1] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[1])
 	mmapreg.memgpiochipreg[2], err = syscall.Mmap(int(mmapreg.memfd.Fd()), gpio2_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
+	mmapreg.memgpiochipreg32[2] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[2])
 	mmapreg.memgpiochipreg[3], err = syscall.Mmap(int(mmapreg.memfd.Fd()), gpio3_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
+	mmapreg.memgpiochipreg32[3] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[3])
 	return mmapreg, nil
 }
 
