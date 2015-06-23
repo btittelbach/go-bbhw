@@ -19,6 +19,7 @@ type FakeGPIO struct {
 	name        string
 	dir         int
 	value       bool
+	activelow   bool
 	logTarget   *log.Logger
 	connectedTo []*FakeGPIO
 }
@@ -57,7 +58,7 @@ func (gpio *FakeGPIO) SetDirection(direction int) error {
 }
 
 func (gpio *FakeGPIO) GetState() (state bool, err error) {
-	return gpio.value, nil
+	return gpio.activelow != gpio.value, nil
 }
 
 func (gpio *FakeGPIO) SetState(state bool) error {
@@ -65,20 +66,33 @@ func (gpio *FakeGPIO) SetState(state bool) error {
 		panic("gpio == nil")
 	}
 	if gpio.dir == OUT {
-		gpio.log("set to state >%+v<", state)
-		gpio.value = state
+		gpio.value = gpio.activelow != state
+		gpio.log("set to virtual electrical state >%+v<", gpio.value)
 		if gpio.connectedTo != nil {
 			for _, othergpio := range gpio.connectedTo {
 				if othergpio == nil {
 					continue
 				}
-				othergpio.FakeInput(state)
+				othergpio.FakeInput(gpio.value)
 			}
 		}
 	} else {
 		panic("tried to set state on IN gpio")
 	}
 	return nil
+}
+
+//this inverts the meaning of virtual 0 and 1
+func (gpio *FakeGPIO) SetActiveLow(activelow bool) error {
+	if gpio == nil {
+		panic("gpio == nil")
+	}
+	prev_state, err := gpio.GetState()
+	if err != nil {
+		return err
+	}
+	gpio.activelow = activelow
+	return gpio.SetState(prev_state)
 }
 
 func (gpio *FakeGPIO) SetStateNow(state bool) error { return gpio.SetState(state) }

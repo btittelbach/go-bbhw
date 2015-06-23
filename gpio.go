@@ -12,6 +12,7 @@ type GPIOControllablePin interface {
 	SetStateNow(bool) error
 	GetState() (bool, error)
 	CheckDirection() (int, error)
+	SetActiveLow(bool) error
 }
 
 const (
