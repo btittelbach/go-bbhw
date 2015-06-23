@@ -35,6 +35,8 @@ const ( // AM335x Memory Addresses
 	intgpio_cleardataout_o32_    = 0x190 / 4
 	intgpio_datain_              = 0x138
 	intgpio_datain_o32_          = 0x138 / 4
+	intgpio_dataout_             = 0x13C
+	intgpio_dataout_o32_         = 0x13C / 4
 	intgpio_debounceenable_      = 0x150
 	intgpio_debounceenable_o32_  = 0x150 / 4
 	intgpio_debouncetime_        = 0x154

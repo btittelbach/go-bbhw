@@ -76,8 +76,9 @@ func (gpio *MMappedGPIOInCollection) SetFutureState(state bool) error {
 }
 
 /// Checks if State was Set during a transaction but not yet applied
-/// state_known returns true if state was set
-/// state returns the future state
+/// state_known returns true if state was set (i.e. either a corresponding bit is set in either clear- or set-register)
+/// state returns the future state (i.e. which bit was set)
+/// SetActiveLow inverts state but obviously not state_known
 /// err returns nil
 func (gpio *MMappedGPIOInCollection) GetFutureState() (state_known, state bool, err error) {
 	gpio.collection.lock.Lock()
@@ -102,18 +103,22 @@ func (gpio *MMappedGPIOInCollection) SetState(state bool) error {
 //this inverts the meaning of 0 and 1
 //just like in SysFS, this has an immediate effect on the physical output
 //unless BeginTransactionRecordSetStates() was called beforehand in which case its effect is delayed until EndTransactionApplySetStates()
-func (gpio *MMappedGPIOInCollection) SetActiveLow(activelow bool) error {
+func (gpio *MMappedGPIOInCollection) SetActiveLow(activelow bool) (err error) {
 	if gpio == nil {
 		panic("gpio == nil")
 	}
-	state_known, prev_state, err := gpio.GetFutureState()
-	if err != nil {
-		return err
+	state_known := false
+	prev_state := false
+	if gpio.collection.record_changes {
+		state_known, prev_state, err = gpio.GetFutureState()
+		if err != nil {
+			return
+		}
 	}
-	if !state_known {
+	if state_known == false {
 		prev_state, err = gpio.GetState()
 		if err != nil {
-			return err
+			return
 		}
 	}
 	gpio.activelow = activelow

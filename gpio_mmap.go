@@ -93,16 +93,18 @@ func (gpio *MMappedGPIO) SetActiveLow(activelow bool) error {
 	return gpio.SetState(prev_state)
 }
 
+// returns true if pin is HIGH and false if pin is LOW i.e. HIGH/LOW signal on input pin
+// note that SetActiveLow inverts return value
+// internal note: in contrast to SysFS we need to query two different registers depending on the pin direction
 func (gpio *MMappedGPIO) GetState() (state bool, err error) {
 	mmapreg := getgpiommap()
-	// sync / flush memory
-	// _, _, errno := syscall.Syscall(syscall.SYS_MSYNC, *(*uintptr)(unsafe.Pointer(&mmapreg.memgpiochipreg[gpio.chipid])), uintptr(len(mmapreg.memgpiochipreg[gpio.chipid])), syscall.MS_SYNC)
-	// if errno != 0 {
-	// 	err = syscall.Errno(errno)
-	// } else {
-	// 	state = mmapreg.memgpiochipreg[gpio.chipid][intgpio_setdataout_+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0
-	// }
-	state = gpio.activelow != (mmapreg.memgpiochipreg[gpio.chipid][intgpio_datain_+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0)
+	var register uint
+	if mmapreg.memgpiochipreg[gpio.chipid][intgpio_output_enabled_+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0 {
+		register = intgpio_datain_ // if DIRECTION==IN
+	} else {
+		register = intgpio_dataout_ // if DIRECTION==OUT
+	}
+	state = gpio.activelow != (mmapreg.memgpiochipreg[gpio.chipid][register+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0)
 	return
 }
 
