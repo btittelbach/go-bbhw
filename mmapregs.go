@@ -19,7 +19,6 @@ type mappedRegisters struct {
 }
 
 var mmaped_gpio_register_ *mappedRegisters
-var mmaped_lock_ sync.Mutex
 
 const ( // AM335x Memory Addresses
 	omap4_gpio0_offset_          = 0x44E07000
@@ -27,8 +26,8 @@ const ( // AM335x Memory Addresses
 	gpio_pagesize_               = 0x1000 //4KiB
 	spinlock_offset_             = 0x480CA000
 	spinlock_pagesize_           = 0x1000 //4KiB
-	gpio2_offset_                = 0x481AC000
-	gpio3_offset_                = 0x481AE000
+	omap4_gpio2_offset_          = 0x481AC000
+	omap4_gpio3_offset_          = 0x481AE000
 	pinmux_controlmodule_offset_ = 0x44E10000
 	intgpio_setdataout_          = 0x194
 	intgpio_setdataout_o32_      = 0x194 / 4
@@ -65,7 +64,7 @@ func verifyAddrIsTIOmap4(addr uint) bool {
 //so that the []uint32 data will not be garbage collected
 func castByteSliceToUint32Slice(raw []byte) []uint32 {
 	rawlen := len(raw)
-	// Get the slice header
+	// Copy the slice header
 	header := *(*reflect.SliceHeader)(unsafe.Pointer(&raw))
 
 	// The length and capacity of the slice are different.
@@ -81,7 +80,7 @@ func castByteSliceToUint32Slice(raw []byte) []uint32 {
 
 func newGPIORegMMap() (mmapreg *mappedRegisters, err error) {
 	//Verify our memory addresses are actually correct
-	if !(verifyAddrIsTIOmap4(omap4_gpio0_offset_) && verifyAddrIsTIOmap4(omap4_gpio1_offset_) && verifyAddrIsTIOmap4(gpio2_offset_) && verifyAddrIsTIOmap4(gpio3_offset_)) {
+	if !(verifyAddrIsTIOmap4(omap4_gpio0_offset_) && verifyAddrIsTIOmap4(omap4_gpio1_offset_) && verifyAddrIsTIOmap4(omap4_gpio2_offset_) && verifyAddrIsTIOmap4(omap4_gpio3_offset_)) {
 		return nil, fmt.Errorf("Looks like we aren't on a AM33xx CPU! Please check your Datasheet and update the code (github) or stick to the SysFSGPIOs")
 	}
 	mmapreg = new(mappedRegisters)
@@ -99,24 +98,28 @@ func newGPIORegMMap() (mmapreg *mappedRegisters, err error) {
 		return nil, err
 	}
 	mmapreg.memgpiochipreg32[0] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[0])
+
 	mmapreg.memgpiochipreg[1], err = syscall.Mmap(int(mmapreg.memfd.Fd()), omap4_gpio1_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
 	mmapreg.memgpiochipreg32[1] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[1])
-	mmapreg.memgpiochipreg[2], err = syscall.Mmap(int(mmapreg.memfd.Fd()), gpio2_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
+
+	mmapreg.memgpiochipreg[2], err = syscall.Mmap(int(mmapreg.memfd.Fd()), omap4_gpio2_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
 	mmapreg.memgpiochipreg32[2] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[2])
-	mmapreg.memgpiochipreg[3], err = syscall.Mmap(int(mmapreg.memfd.Fd()), gpio3_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
+
+	mmapreg.memgpiochipreg[3], err = syscall.Mmap(int(mmapreg.memfd.Fd()), omap4_gpio3_offset_, gpio_pagesize_, syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		mmapreg.close()
 		return nil, err
 	}
 	mmapreg.memgpiochipreg32[3] = castByteSliceToUint32Slice(mmapreg.memgpiochipreg[3])
+
 	return mmapreg, nil
 }
 

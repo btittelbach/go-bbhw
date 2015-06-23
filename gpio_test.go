@@ -72,7 +72,6 @@ func checkSysfsVersusMMapGPIO(gpionum uint, t *testing.T) {
 		t.Error("4: sg.GetState() != fg.SetState()")
 	}
 	sg.SetState(false)
-
 }
 
 func Test_FastGPIO(t *testing.T) {
@@ -90,6 +89,48 @@ func Test_FastGPIO(t *testing.T) {
 	checkSysfsVersusMMapGPIO(81, t)
 	checkSysfsVersusMMapGPIO(88, t)
 	checkSysfsVersusMMapGPIO(117, t)
+}
+
+func checkSysfsVersusActiveLowMMapGPIO(gpionum uint, t *testing.T) {
+	chipid, gpioid := calcGPIOAddrFromLinuxGPIONum(gpionum)
+	t.Logf("Testing sysfs:gpio/gpio%d chip:gpio%d[%d]", gpionum, chipid, gpioid)
+	fg := NewMMapedGPIO(gpionum, OUT)
+	sg := NewSysfsGPIOOrPanic(gpionum, OUT)
+	defer sg.Close()
+	defer fg.Close()
+
+	// Test SysFS vs MMapped
+	fg.SetState(false)
+	if GetStateOrPanic(sg) != false {
+		t.Error("1: sg.GetState() != fg.SetState()")
+	}
+	fg.SetActiveLow(true)
+	if GetStateOrPanic(sg) != true {
+		t.Error("2: sg.GetState() != ! fg.SetState()")
+	}
+	sg.SetState(false)
+	if GetStateOrPanic(fg) != true {
+		t.Error("3: sg.GetState() != ! fg.SetState()")
+	}
+	fg.SetState(true)
+	if GetStateOrPanic(sg) != false {
+		t.Error("4: sg.GetState() != ! fg.SetState()")
+	}
+	sg.SetState(false)
+}
+
+func Test_FastActiveLowGPIO(t *testing.T) {
+	checkSysfsVersusActiveLowMMapGPIO(3, t)
+	checkSysfsVersusActiveLowMMapGPIO(4, t)
+	checkSysfsVersusActiveLowMMapGPIO(5, t)
+	checkSysfsVersusActiveLowMMapGPIO(50, t)
+	checkSysfsVersusActiveLowMMapGPIO(51, t)
+	checkSysfsVersusActiveLowMMapGPIO(61, t)
+	checkSysfsVersusActiveLowMMapGPIO(67, t)
+	checkSysfsVersusActiveLowMMapGPIO(80, t)
+	checkSysfsVersusActiveLowMMapGPIO(81, t)
+	checkSysfsVersusActiveLowMMapGPIO(88, t)
+	checkSysfsVersusActiveLowMMapGPIO(117, t)
 }
 
 func Test_SysfsGPIOwCable(t *testing.T) {

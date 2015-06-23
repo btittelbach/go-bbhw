@@ -13,8 +13,9 @@ import "fmt"
 // - SetDebounce
 // - Close
 type MMappedGPIO struct {
-	chipid int
-	gpioid uint
+	chipid    int
+	gpioid    uint
+	activelow bool
 }
 
 /// Fast MemoryMapped GPIO Stuff -----------------------------------------
@@ -62,7 +63,7 @@ func (gpio *MMappedGPIO) SetDebounce(enable_debounce bool) error {
 // in this case: reboot
 func (gpio *MMappedGPIO) SetState(state bool) error {
 	mmapreg := getgpiommap()
-	if state {
+	if state != gpio.activelow {
 		mmapreg.memgpiochipreg[gpio.chipid][intgpio_setdataout_+(gpio.gpioid/8)] = 1 << (gpio.gpioid % 8)
 	} else {
 		mmapreg.memgpiochipreg[gpio.chipid][intgpio_cleardataout_+(gpio.gpioid/8)] = 1 << (gpio.gpioid % 8)
@@ -78,6 +79,20 @@ func (gpio *MMappedGPIO) SetState(state bool) error {
 
 func (gpio *MMappedGPIO) SetStateNow(state bool) error { return gpio.SetState(state) }
 
+//this inverts the meaning of 0 and 1
+//just like in SysFS, this has an immediate effect on the physical output
+func (gpio *MMappedGPIO) SetActiveLow(activelow bool) error {
+	if gpio == nil {
+		panic("gpio == nil")
+	}
+	prev_state, err := gpio.GetState()
+	if err != nil {
+		return err
+	}
+	gpio.activelow = activelow
+	return gpio.SetState(prev_state)
+}
+
 func (gpio *MMappedGPIO) GetState() (state bool, err error) {
 	mmapreg := getgpiommap()
 	// sync / flush memory
@@ -87,7 +102,7 @@ func (gpio *MMappedGPIO) GetState() (state bool, err error) {
 	// } else {
 	// 	state = mmapreg.memgpiochipreg[gpio.chipid][intgpio_setdataout_+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0
 	// }
-	state = mmapreg.memgpiochipreg[gpio.chipid][intgpio_datain_+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0
+	state = gpio.activelow != (mmapreg.memgpiochipreg[gpio.chipid][intgpio_datain_+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0)
 	return
 }
 

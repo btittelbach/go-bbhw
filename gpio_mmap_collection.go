@@ -2,6 +2,10 @@
 
 package bbhw
 
+import (
+	"sync"
+)
+
 type MMappedGPIOInCollection struct {
 	MMappedGPIO
 	collection *MMappedGPIOCollectionFactory
@@ -12,6 +16,7 @@ type MMappedGPIOCollectionFactory struct {
 	gpios_to_set   []uint32
 	gpios_to_clear []uint32
 	record_changes bool
+	lock           sync.Mutex
 }
 
 /// ---------- MMappedGPIOCollectionFactory ---------------
@@ -26,6 +31,8 @@ func NewMMapedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory) {
 
 func (gpiocf *MMappedGPIOCollectionFactory) EndTransactionApplySetStates() {
 	mmapreg := getgpiommap()
+	gpiocf.lock.Lock()
+	defer gpiocf.lock.Unlock()
 	for i, _ := range gpiocf.gpios_to_set {
 		mmapreg.memgpiochipreg32[i][intgpio_setdataout_o32_] = gpiocf.gpios_to_set[i]
 		mmapreg.memgpiochipreg32[i][intgpio_cleardataout_o32_] = gpiocf.gpios_to_clear[i]
@@ -36,6 +43,8 @@ func (gpiocf *MMappedGPIOCollectionFactory) EndTransactionApplySetStates() {
 }
 
 func (gpiocf *MMappedGPIOCollectionFactory) BeginTransactionRecordSetStates() {
+	gpiocf.lock.Lock()
+	defer gpiocf.lock.Unlock()
 	gpiocf.record_changes = true
 }
 
@@ -54,7 +63,9 @@ func (gpio *MMappedGPIOInCollection) SetStateNow(state bool) error {
 }
 
 func (gpio *MMappedGPIOInCollection) SetFutureState(state bool) error {
-	if state {
+	gpio.collection.lock.Lock()
+	defer gpio.collection.lock.Unlock()
+	if gpio.activelow != state {
 		gpio.collection.gpios_to_set[gpio.chipid] |= uint32(1 << gpio.gpioid)
 		gpio.collection.gpios_to_clear[gpio.chipid] &= ^uint32(1 << gpio.gpioid)
 	} else {
@@ -69,11 +80,14 @@ func (gpio *MMappedGPIOInCollection) SetFutureState(state bool) error {
 /// state returns the future state
 /// err returns nil
 func (gpio *MMappedGPIOInCollection) GetFutureState() (state_known, state bool, err error) {
+	gpio.collection.lock.Lock()
+	defer gpio.collection.lock.Unlock()
 	state = gpio.collection.gpios_to_set[gpio.chipid]&uint32(1<<gpio.gpioid) > 0
 	state_known = state
 	if !state_known {
 		state_known = gpio.collection.gpios_to_clear[gpio.chipid]&uint32(1<<gpio.gpioid) > 0
 	}
+	state = state != gpio.activelow
 	return
 }
 
@@ -83,4 +97,25 @@ func (gpio *MMappedGPIOInCollection) SetState(state bool) error {
 	} else {
 		return gpio.SetStateNow(state)
 	}
+}
+
+//this inverts the meaning of 0 and 1
+//just like in SysFS, this has an immediate effect on the physical output
+//unless BeginTransactionRecordSetStates() was called beforehand in which case its effect is delayed until EndTransactionApplySetStates()
+func (gpio *MMappedGPIOInCollection) SetActiveLow(activelow bool) error {
+	if gpio == nil {
+		panic("gpio == nil")
+	}
+	state_known, prev_state, err := gpio.GetFutureState()
+	if err != nil {
+		return err
+	}
+	if !state_known {
+		prev_state, err = gpio.GetState()
+		if err != nil {
+			return err
+		}
+	}
+	gpio.activelow = activelow
+	return gpio.SetState(prev_state)
 }

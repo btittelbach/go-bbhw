@@ -3,6 +3,7 @@
 package bbhw
 
 import "testing"
+import "time"
 
 func Test_MethodOverriding(t *testing.T) {
 	gf := NewMMapedGPIOCollectionFactory()
@@ -138,4 +139,43 @@ func Test_MMapGpioFromCollectionVersusSysfsGPIO(t *testing.T) {
 	checkSysfsVersusMMapGPIOFromCollection(81, t)
 	checkSysfsVersusMMapGPIOFromCollection(88, t)
 	checkSysfsVersusMMapGPIOFromCollection(117, t)
+}
+
+func Test_checkGPIO2Chip(t *testing.T) {
+	gf := NewMMapedGPIOCollectionFactory()
+	g := make([]*MMappedGPIOInCollection, 32)
+	for gpionum := uint(32) * 2; gpionum < 32*3; gpionum++ {
+		chipid, gpioid := calcGPIOAddrFromLinuxGPIONum(gpionum)
+		t.Logf("Creating gpio/gpio%d chip:gpio%d[%d]", gpionum, chipid, gpioid)
+		g[gpionum%32] = gf.NewMMapedGPIO(gpionum, OUT)
+	}
+	for i, gpio := range g {
+		t.Logf("Set gpio2[%d==%d] to true", i, gpio.gpioid)
+		gpio.SetState(true)
+	}
+	time.Sleep(200 * time.Millisecond)
+	gf.BeginTransactionRecordSetStates()
+	for i, gpio := range g {
+		t.Logf("Set gpio2[%d==%d] to false in future", i, gpio.gpioid)
+		gpio.SetState(false)
+	}
+	time.Sleep(200 * time.Millisecond)
+	t.Logf("Apply States")
+	t.Logf("gpios_to_clear: %x", gf.gpios_to_clear)
+	t.Logf("gpios_to_set: %x", gf.gpios_to_set)
+	gf.EndTransactionApplySetStates()
+	time.Sleep(200 * time.Millisecond)
+	gf.BeginTransactionRecordSetStates()
+	for i, gpio := range g {
+		t.Logf("Set gpio2[%d==%d] to true in future", i, gpio.gpioid)
+		gpio.SetState(true)
+	}
+	t.Logf("Apply States")
+	gf.EndTransactionApplySetStates()
+	time.Sleep(200 * time.Millisecond)
+	for i, gpio := range g {
+		t.Logf("Set gpio2[%d==%d] to false", i, gpio.gpioid)
+		gpio.SetState(false)
+	}
+	t.Log("Success")
 }
