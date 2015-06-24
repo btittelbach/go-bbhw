@@ -2,9 +2,7 @@
 
 package bbhw
 
-import (
-	"sync"
-)
+import "sync"
 
 type MMappedGPIOInCollection struct {
 	MMappedGPIO
@@ -29,13 +27,24 @@ func NewMMapedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory) {
 	return gpiocf
 }
 
+// Quickly and concurrently (i.e. faster than GPIOChips can react) applies new state
+// by writing a 32 bit value to the corresponding CLEARDATA and SETDATA registers for each
+// of the four gpio chips.
+//
+// Note that at LEAST one gpio for each gpiochip has to be exported in sysfs
+// in order to active the corresponding gpiochip
+// otherwise clocksource of gpiochip remains gated and we hang on receiving SIGBUS immediately after trying to write that register
+// see: https://groups.google.com/forum/#!msg/beagleboard/OYFp4EXawiI/Mq6s3sg14HoJ
 func (gpiocf *MMappedGPIOCollectionFactory) EndTransactionApplySetStates() {
 	mmapreg := getgpiommap()
 	gpiocf.lock.Lock()
 	defer gpiocf.lock.Unlock()
-	for i, _ := range gpiocf.gpios_to_set {
-		mmapreg.memgpiochipreg32[i][intgpio_setdataout_o32_] = gpiocf.gpios_to_set[i]
-		mmapreg.memgpiochipreg32[i][intgpio_cleardataout_o32_] = gpiocf.gpios_to_clear[i]
+	for i, _ := range gpiocf.gpios_to_clear {
+		if gpiocf.gpios_to_set[i] > 0 || gpiocf.gpios_to_clear[i] > 0 {
+			// only set registers which are known to be enabled (i.e. have been set by our code thus have had NewMMapedGPIO called, thus have been exported in sysfs and thus are provided with a clk by the CPU/Linux)
+			mmapreg.memgpiochipreg32[i][intgpio_cleardataout_o32_] = gpiocf.gpios_to_clear[i]
+			mmapreg.memgpiochipreg32[i][intgpio_setdataout_o32_] = gpiocf.gpios_to_set[i]
+		}
 		gpiocf.gpios_to_set[i] = 0
 		gpiocf.gpios_to_clear[i] = 0
 	}

@@ -18,6 +18,7 @@ import (
 // - Close
 // - SetDirection
 // - ReOpen
+// - SetActiveLow
 type SysfsGPIO struct {
 	Number uint
 	fd     *os.File
@@ -201,6 +202,8 @@ func (gpio *SysfsGPIO) SetState(state bool) error {
 
 func (gpio *SysfsGPIO) SetStateNow(state bool) error { return gpio.SetState(state) }
 
+//closes filedescriptor
+//does NOT unexport gpio, since gpio_mmap_collection and gpio_mmap depend on the gpio remaining exported and the gpiobank activated
 func (gpio *SysfsGPIO) Close() {
 	gpio.fd.Close()
 	gpio = nil

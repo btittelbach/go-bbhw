@@ -15,6 +15,7 @@ import (
 // - CheckDirection
 // - Close
 // - SetDirection
+// - SetActiveLow
 type FakeGPIO struct {
 	name        string
 	dir         int

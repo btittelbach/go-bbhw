@@ -12,6 +12,7 @@ import "fmt"
 // - CheckDirection
 // - SetDebounce
 // - Close
+// - SetActiveLow
 type MMappedGPIO struct {
 	chipid    int
 	gpioid    uint
