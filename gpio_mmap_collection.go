@@ -4,11 +4,15 @@ package bbhw
 
 import "sync"
 
+// Uses the memory mapped IO to directly interface with AM335x registers.
+// Same as MMappedGPIO, but part of a collection of GPIOs you can set all at once using database-like transactions.
 type MMappedGPIOInCollection struct {
 	MMappedGPIO
 	collection *MMappedGPIOCollectionFactory
 }
 
+// Collection of GPIOs. Records SetState() calls after BeginTransactionRecordSetStates() has been called and delays their effect until EndTransactionApplySetStates() is called.
+// Use it to toggle many GPIOs in the very same instant.
 type MMappedGPIOCollectionFactory struct {
 	//4 32bit arrays to be copied to register
 	gpios_to_set   []uint32
@@ -19,6 +23,8 @@ type MMappedGPIOCollectionFactory struct {
 
 /// ---------- MMappedGPIOCollectionFactory ---------------
 
+// Create a collection of GPIOs.
+// Doubles as factory for the MMappedGPIOInCollection type.
 func NewMMapedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory) {
 	mmapreg := getgpiommap()
 	gpiocf = new(MMappedGPIOCollectionFactory)
@@ -51,12 +57,14 @@ func (gpiocf *MMappedGPIOCollectionFactory) EndTransactionApplySetStates() {
 	gpiocf.record_changes = false
 }
 
+// Begin recording calls to SetState for later
 func (gpiocf *MMappedGPIOCollectionFactory) BeginTransactionRecordSetStates() {
 	gpiocf.lock.Lock()
 	defer gpiocf.lock.Unlock()
 	gpiocf.record_changes = true
 }
 
+// Same as NewMMapedGPIO but part of a MMappedGPIOCollectionFactory
 func (gpiocf *MMappedGPIOCollectionFactory) NewMMapedGPIO(number uint, direction int) (gpio *MMappedGPIOInCollection) {
 	NewSysfsGPIOOrPanic(number, direction).Close()
 	gpio = new(MMappedGPIOInCollection)

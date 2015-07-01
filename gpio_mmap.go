@@ -4,15 +4,8 @@ package bbhw
 
 import "fmt"
 
-// MMappedGPIO Constructor:
-// - NewMMapedGPIO
-// MMappedGPIO Methods:
-// - SetState
-// - GetState
-// - CheckDirection
-// - SetDebounce
-// - Close
-// - SetActiveLow
+// Uses the memory mapped IO to directly interface with AM335x registers.
+// Toggles GPIOs about 800 times faster than SysFS.
 type MMappedGPIO struct {
 	chipid    int
 	gpioid    uint
@@ -21,6 +14,11 @@ type MMappedGPIO struct {
 
 /// Fast MemoryMapped GPIO Stuff -----------------------------------------
 
+// Instantinate a new and fast GPIO controlled using direct access to AM335x registers.
+// Takes GPIO numer (same as in sysfs) and direction bbhw.IN or bbhw.OUT
+// Only works on AM335x and address compatible SoCs
+//
+// See http://kilobaser.com/blog/2014-07-15-beaglebone-black-gpios#1gpiopin regarding the numbering of GPIO pins.
 func NewMMapedGPIO(number uint, direction int) (gpio *MMappedGPIO) {
 	//Set direction and export GPIO via sysfs
 	NewSysfsGPIOOrPanic(number, direction).Close()

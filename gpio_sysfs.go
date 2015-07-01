@@ -8,17 +8,8 @@ import (
 	"os"
 )
 
-// SysfsGPIO Constructor:
-// - NewSysfsGPIO
-// - NewSysfsGPIOOrPanic
-// SysfsGPIO Methods:
-// - SetState
-// - GetState
-// - CheckDirection
-// - Close
-// - SetDirection
-// - ReOpen
-// - SetActiveLow
+// Uses the /sys/class/gpio/**/* file-interface provided by the linux kernel.
+// Slightly slower than mmapped implementations but will work on any linux system with GPIOs.
 type SysfsGPIO struct {
 	Number uint
 	fd     *os.File
@@ -26,6 +17,9 @@ type SysfsGPIO struct {
 
 // SysFS managed GPIO ------------------------------------
 
+// Instantinate a new GPIO to control through sysfs. Takes GPIO numer (same as in sysfs) and direction bbhw.IN or bbhw.OUT
+//
+// See http://kilobaser.com/blog/2014-07-15-beaglebone-black-gpios#1gpiopin regarding the numbering of GPIO pins.
 func NewSysfsGPIO(number uint, direction int) (gpio *SysfsGPIO, err error) {
 	gpio = new(SysfsGPIO)
 	gpio.Number = number
@@ -45,6 +39,8 @@ func NewSysfsGPIO(number uint, direction int) (gpio *SysfsGPIO, err error) {
 	return gpio, nil
 }
 
+// Wrapper around NewSysfsGPIO. Does not return an error but panics instead. Useful to avoid multiple return values.
+// This is the function with the same signature as all the other New*GPIO*s
 func NewSysfsGPIOOrPanic(number uint, direction int) (gpio *SysfsGPIO) {
 	gpio, err := NewSysfsGPIO(number, direction)
 	if err != nil {

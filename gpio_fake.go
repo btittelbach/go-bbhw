@@ -7,15 +7,8 @@ import (
 	"log"
 )
 
-// FakeGPIO Constructor:
-// - NewFakeGPIO
-// FakeGPIO Methods:
-// - SetState
-// - GetState
-// - CheckDirection
-// - Close
-// - SetDirection
-// - SetActiveLow
+// Use FakeGPIO for testing and debugging.
+// Does not actually toogle GPIOs and works even on your normal computer.
 type FakeGPIO struct {
 	name        string
 	dir         int
@@ -37,10 +30,15 @@ func init() {
 
 // ----------- Fake GPIO for Testing ----------------
 
+// same signature as all the other New*GPIO implementations.
+// logs to FakeGPIODefaultLogTarget_ which is an exported field and thus you can set it to point to the log.Logger of your choice
 func NewFakeGPIO(gpionum uint, direction int) (gpio *FakeGPIO) {
 	return NewFakeNamedGPIO(fmt.Sprintf("FakeGPIO(%d)", gpionum), direction, nil)
 }
 
+// slightly more fancy FakeGPIO for debugging.
+// takes a name for easy recognition in debugging output and an optional logger (or nil) of your choice,
+// thus you could route debug output of different GPIOs to different destinations
 func NewFakeNamedGPIO(name string, direction int, logTarget *log.Logger) (gpio *FakeGPIO) {
 	gpio = &FakeGPIO{name: name, dir: direction, value: false, logTarget: logTarget}
 	return
