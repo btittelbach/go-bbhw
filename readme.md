@@ -24,11 +24,11 @@ if you are looking for go-support for OneWire / DS18x20 devices.
 I've also written two blogs about [using PINS on the BeagleBone Black](http://kilobaser.com/blog/2014-07-15-beaglebone-black-gpios) and [making Device-Tree Overlays](http://kilobaser.com/blog/2014-07-28-beaglebone-black-devicetreeoverlay-generator) to configure the BeagleBone Black.
 
 ## Usage
-```
-#> go get github.com/btittelbach/go-bbhw
+```bash
+%> go get github.com/btittelbach/go-bbhw
 ```
 
-```
+```go
 import "github.com/btittelbach/go-bbhw"
 
 bbhw.
@@ -41,7 +41,7 @@ View the API docs [here](http://godoc.org/github.com/btittelbach/go-bbhw)
 ### Using GPIOs
 Control GPIOs using the ```GPIOControllablePin``` interface for which **four** implemenations are provided
 
-```golang
+```go
 type GPIOControllablePin interface {
     SetState(bool) error
     SetStateNow(bool) error
@@ -60,7 +60,8 @@ func NewFakeGPIO(gpionum uint, direction int) (gpio *FakeGPIO)
     same signature as all the other New*GPIO implementations. logs to
     FakeGPIODefaultLogTarget_ which is an exported field and thus you can
     set it to point to the log.Logger of your choice
-
+````
+```go
 func NewFakeNamedGPIO(name string, direction int, logTarget *log.Logger) (gpio *FakeGPIO)
     slightly more fancy FakeGPIO for debugging. takes a name for easy
     recognition in debugging output and an optional logger (or nil) of your
@@ -77,7 +78,8 @@ Slightly slower than mmapped implementations but will work on any linux system w
 func NewSysfsGPIO(number uint, direction int) (gpio *SysfsGPIO, err error)
     Instantinate a new GPIO to control through sysfs. Takes GPIO numer (same
     as in sysfs) and direction bbhw.IN or bbhw.OUT
-
+````
+```go
 func NewSysfsGPIOOrPanic(number uint, direction int) (gpio *SysfsGPIO)
     Wrapper around NewSysfsGPIO. Does not return an error but panics
     instead. Useful to avoid multiple return values. This is the function
@@ -103,7 +105,8 @@ Records SetState() calls after BeginTransactionRecordSetStates() has been called
 func NewMMapedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory)
     Create a collection of GPIOs. Doubles as factory for the
     MMappedGPIOInCollection type.
-
+````
+```go
 func (gpiocf *MMappedGPIOCollectionFactory) NewMMapedGPIO(number uint, direction int) (gpio *MMappedGPIOInCollection)
     Same as NewMMapedGPIO but part of a MMappedGPIOCollectionFactory
 ```
