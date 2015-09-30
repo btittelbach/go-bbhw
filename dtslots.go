@@ -1,3 +1,4 @@
+/// Author: Bernhard Tittelbach, btittelbach@github  (c) 2015
 package bbhw
 
 import (
@@ -34,65 +35,37 @@ func makeFindDirHelperFunc(returnvalue *string, path_base string, target_re, int
 }
 
 func findSlotsFile() (sfile string, err error) {
-	foundit := fmt.Errorf("Success")
 	path_base := "/sys/devices"
 	path_re1 := "^" + path_base + "/bone_capemgr" + `\.\d+`
 	re1 := regexp.MustCompile(path_re1 + "$")
 	var tdir string
-	findDeviceTreeSlotsFileBBB := func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			return nil
-		}
-		if path == path_base {
-			return nil
-		}
-		if re1.MatchString(path) {
-			tdir = path
-			return foundit //foundit
-		}
-		return nil //continue walking
-	}
-	err = filepath.Walk(path_base, findDeviceTreeSlotsFileBBB)
-	if err == foundit {
+	err = filepath.Walk(path_base, makeFindDirHelperFunc(&tdir, path_base, re1, nil))
+	if err == foundit_error_ {
 		err = nil
+		sfile = tdir + "/slots"
+	} else if err == nil {
+		err = fmt.Errorf("NotFound")
 	}
-	sfile = tdir + "/slots"
 	return
 }
 
 func findOverlayStateFile(dtb_name string) (sfile string, err error) {
-	foundit := fmt.Errorf("Success")
 	path_base := "/sys/devices"
 	path_re1 := "^" + path_base + "/ocp" + `\.\d+`
 	path_re2 := path_re1 + "/" + dtb_name + `\.\d+`
+	var re2 *regexp.Regexp
 	re1 := regexp.MustCompile(path_re1 + "$")
-	re2, err := regexp.Compile(path_re2)
+	re2, err = regexp.Compile(path_re2)
 	if err != nil {
 		return
 	}
-	findOverlayStateFileBBB := func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			return nil
-		}
-		if path == path_base {
-			return nil
-		}
-		if re2.MatchString(path) {
-			sfile = path
-			return foundit //foundit
-		}
-		if !re1.MatchString(path) {
-			return filepath.SkipDir //skipdir if not like path_re1
-		}
-		return nil //continue walking
-	}
-	err = filepath.Walk(path_base, findOverlayStateFileBBB)
-	if err == foundit {
+	err = filepath.Walk(path_base, makeFindDirHelperFunc(&sfile, path_base, re2, re1))
+	if err == foundit_error_ {
 		err = nil
-	} else {
+		sfile = sfile + "/state"
+	} else if err == nil {
 		err = fmt.Errorf("NotFound")
 	}
-	sfile = sfile + "/state"
 	return
 }
 

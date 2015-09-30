@@ -18,7 +18,6 @@ type PWMLine struct {
 }
 
 func findPWMDir(bbb_pin string) (tdir string, err error) {
-	foundit := fmt.Errorf("Success")
 	path_base := "/sys/devices"
 	path_re1 := "^" + path_base + "/ocp" + `\.\d+`
 	path_re2 := path_re1 + "/pwm_test_" + bbb_pin
@@ -27,26 +26,10 @@ func findPWMDir(bbb_pin string) (tdir string, err error) {
 	if err != nil {
 		return
 	}
-	findPWMDirBBB := func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			return nil
-		}
-		if path == path_base {
-			return nil
-		}
-		if re2.MatchString(path) {
-			tdir = path
-			return foundit //foundit
-		}
-		if !re1.MatchString(path) {
-			return filepath.SkipDir //skipdir if not like path_re1
-		}
-		return nil //continue walking
-	}
-	err = filepath.Walk(path_base, findPWMDirBBB)
-	if err == foundit {
+	err = filepath.Walk(path_base, makeFindDirHelperFunc(&tdir, path_base, re2, re1))
+	if err == foundit_error_ {
 		err = nil
-	} else {
+	} else if err == nil {
 		err = fmt.Errorf("NotFound")
 	}
 	return
