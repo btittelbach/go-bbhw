@@ -20,6 +20,12 @@ const (
 	OUT
 )
 
+type ADC interface {
+	ReadValue() uint16
+	CheckErrorOccurred() error
+	ReadValueCheckError() (uint16, error)
+}
+
 /// GPIOControllablePin Interface and Methods -----------------
 
 func GetStateOrPanic(gpio GPIOControllablePin) bool {
