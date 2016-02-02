@@ -73,6 +73,10 @@ func (gpiocf *MMappedGPIOCollectionFactory) NewMMapedGPIO(number uint, direction
 	return gpio
 }
 
+func (gpiocf *MMappedGPIOCollectionFactory) NewGPIO(number uint, direction int) GPIOControllablePinInCollection {
+	return gpiocf.NewMMapedGPIO(number, direction)
+}
+
 /// ------------- MMappedGPIOInCollection Methods -------------------
 
 func (gpio *MMappedGPIOInCollection) SetStateNow(state bool) error {

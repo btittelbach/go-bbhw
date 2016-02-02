@@ -15,6 +15,22 @@ type GPIOControllablePin interface {
 	SetActiveLow(bool) error
 }
 
+type GPIOCollectionFactory interface {
+	EndTransactionApplySetStates()
+	BeginTransactionRecordSetStates()
+	NewGPIO(uint, int) GPIOControllablePinInCollection
+}
+
+type GPIOControllablePinInCollection interface {
+	SetState(bool) error
+	SetStateNow(bool) error
+	GetState() (bool, error)
+	CheckDirection() (int, error)
+	SetActiveLow(bool) error
+	SetFutureState(state bool) error
+	GetFutureState() (state_known, state bool, err error)
+}
+
 const (
 	IN = iota
 	OUT
