@@ -75,6 +75,10 @@ func checkSysfsVersusMMapGPIO(gpionum uint, t *testing.T) {
 }
 
 func Test_FastGPIO(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	// fg := NewMMapedGPIO(67, OUT)
 	// sg := NewSysfsGPIOOrPanic(67, OUT)
 	checkSysfsVersusMMapGPIO(2, t)
@@ -120,6 +124,10 @@ func checkSysfsVersusActiveLowMMapGPIO(gpionum uint, t *testing.T) {
 }
 
 func Test_FastActiveLowGPIO(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	checkSysfsVersusActiveLowMMapGPIO(3, t)
 	checkSysfsVersusActiveLowMMapGPIO(4, t)
 	checkSysfsVersusActiveLowMMapGPIO(5, t)
@@ -134,6 +142,10 @@ func Test_FastActiveLowGPIO(t *testing.T) {
 }
 
 func Test_SysfsGPIOwCable(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	outg := NewSysfsGPIOOrPanic(67, OUT) //P8_8
 	ing := NewSysfsGPIOOrPanic(66, IN)   //P8_7
 	defer outg.Close()
@@ -153,6 +165,10 @@ func Test_SysfsGPIOwCable(t *testing.T) {
 }
 
 func Test_MmappedGPIOwCable(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	outg := NewMMapedGPIO(67, OUT) //P8_8
 	ing := NewMMapedGPIO(66, IN)   //P8_7
 
@@ -186,6 +202,10 @@ func Test_MmappedGPIOwCable(t *testing.T) {
 }
 
 func Test_MmappedGPIOwCableInGoroutines(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	outg := NewMMapedGPIO(67, OUT) //P8_8
 	outslow := NewSysfsGPIOOrPanic(67, OUT)
 	ing := NewMMapedGPIO(66, IN) //P8_7
@@ -239,5 +259,4 @@ func Test_FakeGPIO(t *testing.T) {
 	if GetStateOrPanic(f2) != false {
 		t.Error("Fake connection to f2 did not work")
 	}
-
 }

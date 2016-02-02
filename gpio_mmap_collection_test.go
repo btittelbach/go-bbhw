@@ -6,6 +6,10 @@ import "testing"
 import "time"
 
 func Test_MethodOverriding(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	gf := NewMMapedGPIOCollectionFactory()
 	g := gf.NewMMapedGPIO(67, OUT)
 	g.SetStateNow(false)
@@ -125,6 +129,10 @@ func checkSysfsVersusMMapGPIOFromCollection(gpionum uint, t *testing.T) {
 }
 
 func Test_MMapGpioFromCollectionVersusSysfsGPIO(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	// fg := NewMMapedGPIO(67, OUT)
 	// sg := NewSysfsGPIOOrPanic(67, OUT)
 	checkSysfsVersusMMapGPIOFromCollection(2, t)
@@ -142,6 +150,10 @@ func Test_MMapGpioFromCollectionVersusSysfsGPIO(t *testing.T) {
 }
 
 func Test_checkGPIO2Chip(t *testing.T) {
+	if !verifyAddrIsTIOmap4(omap4_gpio0_offset_) {
+		t.Logf("test only works on BeagleBone")
+		return
+	}
 	gf := NewMMapedGPIOCollectionFactory()
 	g := make([]*MMappedGPIOInCollection, 32)
 	for gpionum := uint(32) * 2; gpionum < 32*3; gpionum++ {
