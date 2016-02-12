@@ -2,10 +2,10 @@ package bbhw
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"os"
 )
 
 // SysFS managed ADCs ------------------------------------

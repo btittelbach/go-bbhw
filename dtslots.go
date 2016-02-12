@@ -7,12 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 )
 
 var foundit_error_ error
+var ERROR_DTO_ALREADY_LOADED error
+var slots_file_ string
 
 func init() {
 	foundit_error_ = fmt.Errorf("Success")
+	ERROR_DTO_ALREADY_LOADED = fmt.Errorf("DeviceTreeOverlay is already loaded")
 }
 
 func makeFindDirHelperFunc(returnvalue *string, path_base string, target_re, interm_re *regexp.Regexp) func(string, os.FileInfo, error) error {
@@ -34,7 +38,11 @@ func makeFindDirHelperFunc(returnvalue *string, path_base string, target_re, int
 	}
 }
 
+// Singelton Function .. unlikely that slot file moves between reboots
 func findSlotsFile() (sfile string, err error) {
+	if len(slots_file_) > 0 {
+		return slots_file_, nil
+	}
 	path_base := "/sys/devices"
 	path_re1 := "^" + path_base + "/bone_capemgr" + `\.\d+`
 	re1 := regexp.MustCompile(path_re1 + "$")
@@ -44,8 +52,9 @@ func findSlotsFile() (sfile string, err error) {
 		err = nil
 		sfile = tdir + "/slots"
 	} else if err == nil {
-		err = fmt.Errorf("NotFound")
+		err = fmt.Errorf("OverlaySlotsFile Not Found")
 	}
+	slots_file_ = sfile
 	return
 }
 
@@ -64,7 +73,7 @@ func findOverlayStateFile(dtb_name string) (sfile string, err error) {
 		err = nil
 		sfile = sfile + "/state"
 	} else if err == nil {
-		err = fmt.Errorf("NotFound")
+		err = fmt.Errorf("OverlayStateFile Not Found")
 	}
 	return
 }
@@ -86,7 +95,16 @@ func AddDeviceTreeOverlay(dtb_name string) (err error) {
 	return
 }
 
-func RemoveDeviceTreeOverlay(dtb_name string) (err error) {
+func AddDeviceTreeOverlayIfNotAlreadyLoaded(dtb_name string) (err error) {
+	slot, err := FindDeviceTreeOverlaySlot(dtb_name)
+	if slot == -1 && err != nil {
+		return AddDeviceTreeOverlay(dtb_name)
+	} else {
+		return ERROR_DTO_ALREADY_LOADED
+	}
+}
+
+func FindDeviceTreeOverlaySlot(dtb_name string) (slotnum int64, err error) {
 	var slotsfilename string
 	var slotsfh *os.File
 	var re *regexp.Regexp
@@ -98,7 +116,7 @@ func RemoveDeviceTreeOverlay(dtb_name string) (err error) {
 	if err != nil {
 		return
 	}
-	slotsfh, err = os.OpenFile(slotsfilename, os.O_RDWR|os.O_SYNC, 0666)
+	slotsfh, err = os.OpenFile(slotsfilename, os.O_RDONLY|os.O_SYNC, 0666)
 	if err != nil {
 		return
 	}
@@ -108,12 +126,33 @@ func RemoveDeviceTreeOverlay(dtb_name string) (err error) {
 	var line string
 	for line, err = slotsreader.ReadString('\n'); err == nil; line, err = slotsreader.ReadString('\n') {
 		if match := re.FindStringSubmatch(line); match != nil {
-			slotsfh.Truncate(0)
-			slotsfh.WriteString(fmt.Sprintf("-%s\n", match[1]))
-			return nil
+			slotnum, err = strconv.ParseInt(match[1], 10, 64)
+			return
 		}
 	}
-	return fmt.Errorf("DeviceTreeOverlay %s not found in slots\n", dtb_name)
+	return -1, fmt.Errorf("DeviceTreeOverlay %s not found in slots\n", dtb_name)
+}
+
+func RemoveDeviceTreeOverlay(dtb_name string) (err error) {
+	var slotnum int64
+	slotnum, err = FindDeviceTreeOverlaySlot(dtb_name)
+	if err != nil {
+		return err
+	}
+	var slotsfilename string
+	var slotsfh *os.File
+	slotsfilename, err = findSlotsFile()
+	if err != nil {
+		return
+	}
+	slotsfh, err = os.OpenFile(slotsfilename, os.O_RDWR|os.O_SYNC, 0666)
+	if err != nil {
+		return
+	}
+	defer slotsfh.Close()
+	slotsfh.Truncate(0)
+	slotsfh.WriteString(fmt.Sprintf("-%d\n", slotnum))
+	return
 }
 
 // Overlays like PyBBIO-gpio.* can, once loaded, be configured using file /sys/devices/ocp.\d/PyBBIO-gpio.*.\d\d/state
