@@ -58,13 +58,14 @@ func (adc *SysfsADC) ReadValue() (value uint16) {
 		return
 	}
 
+	var numread int
 	buf := make([]byte, 16, 16)
-	_, adc.err = adc.fd.Read(buf)
+	numread, adc.err = adc.fd.Read(buf)
 	if adc.err != nil {
 		return
 	}
 	var value64 uint64
-	value64, adc.err = strconv.ParseUint(string(buf), 10, 16)
+	value64, adc.err = strconv.ParseUint(string(buf[0:numread-1]), 10, 16)
 
 	return uint16(value64)
 }
