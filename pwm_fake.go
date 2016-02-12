@@ -47,45 +47,6 @@ func (pwm *FakePWMPin) GetPWM() (period, duty time.Duration) {
 	return pwm.period, pwm.duty
 }
 
-// set PWM duty to fraction between 0.0 and 1.0
-func (pwm *FakePWMPin) SetDuty(fraction float64) {
-	if fraction > 1.0 {
-		fraction = 1.0
-	} else if fraction < 0.0 {
-		fraction = 0.0
-	}
-	pwm.duty = time.Duration(int64(float64(pwm.period.Nanoseconds())*fraction)) * time.Nanosecond
-}
-
-func (pwm *FakePWMPin) SetPWMFreq(freq_hz float64) {
-	SetPWMFreq(pwm, freq_hz)
-}
-
-func (pwm *FakePWMPin) SetPWMFreqDuty(freq_hz, fraction float64) {
-	if fraction > 1.0 {
-		fraction = 1.0
-	} else if fraction < 0.0 {
-		fraction = 0.0
-	}
-	period := float64(time.Second) / freq_hz
-	pwm.SetPWM(time.Duration(period), time.Duration(period*fraction))
-}
-
-func (pwm *FakePWMPin) GetPWMFreqDuty() (freq_hz, fraction float64) {
-	period, duty := pwm.GetPWM()
-	freq_hz = float64(time.Second) / float64(period)
-	fraction = float64(duty) / float64(period)
-	return
-}
-
 func (pwm *FakePWMPin) Close() {
 	pwm = nil
-}
-
-func (pwm *FakePWMPin) SetStepperRPM(rpm, stepsperrot float64) {
-	SetStepperRPM(pwm, rpm*stepsperrot/60.0, 0.1)
-}
-
-func (pwm *FakePWMPin) GetStepperRPM(stepsperrot float64) float64 {
-	return GetStepperRPM(pwm, stepsperrot)
 }
