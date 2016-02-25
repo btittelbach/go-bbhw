@@ -108,7 +108,7 @@ func FindDeviceTreeOverlaySlot(dtb_name string) (slotnum int64, err error) {
 	var slotsfilename string
 	var slotsfh *os.File
 	var re *regexp.Regexp
-	re, err = regexp.Compile("^([0-9]+): .*," + dtb_name + "\n$")
+	re, err = regexp.Compile(`^\s*(\d+): .*,` + dtb_name + "\n$")
 	if err != nil {
 		return
 	}
