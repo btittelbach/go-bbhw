@@ -73,9 +73,9 @@ func NewBBBPWMOrPanic(bbb_pin string) *BBPWMPin {
 }
 
 func (pwm *BBPWMPin) SetPolarity(p bool) {
-	var val byte = 0
+	var val byte = '0'
 	if p {
-		val = 1
+		val = '1'
 	}
 	pwm.fd_polarity.Truncate(0)
 	pwm.fd_polarity.Write([]byte{val, '\n'})
