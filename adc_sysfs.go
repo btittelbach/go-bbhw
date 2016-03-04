@@ -46,6 +46,8 @@ func NewSysfsADCOrPanic(number uint) (adc *SysfsADC) {
 	return adc
 }
 
+//returns raw SysFs Value.
+// In case of BeagleBoneBlack that means actual measured voltage in mV
 func (adc *SysfsADC) ReadValue() (value uint16) {
 	if adc == nil {
 		panic("adc == nil")
