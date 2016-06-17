@@ -19,7 +19,7 @@ type MMappedGPIO struct {
 // Only works on AM335x and address compatible SoCs
 //
 // See http://kilobaser.com/blog/2014-07-15-beaglebone-black-gpios#1gpiopin regarding the numbering of GPIO pins.
-func NewMMapedGPIO(number uint, direction int) (gpio *MMappedGPIO) {
+func NewMMappedGPIO(number uint, direction int) (gpio *MMappedGPIO) {
 	//Set direction and export GPIO via sysfs
 	NewSysfsGPIOOrPanic(number, direction).Close()
 	gpio = new(MMappedGPIO)

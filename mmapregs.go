@@ -18,7 +18,7 @@ type mappedRegisters struct {
 	reglock          sync.Mutex
 }
 
-var mmaped_gpio_register_ *mappedRegisters
+var mmapped_gpio_register_ *mappedRegisters
 
 const ( // AM335x Memory Addresses
 	omap4_gpio0_offset_          = 0x44E07000
@@ -158,22 +158,22 @@ func (mmapreg *mappedRegisters) setDebounceTime(gpiochip int, dbt byte) error {
 }
 
 func getgpiommap() *mappedRegisters {
-	if mmaped_gpio_register_ == nil {
+	if mmapped_gpio_register_ == nil {
 		var err error
-		mmaped_gpio_register_, err = newGPIORegMMap()
+		mmapped_gpio_register_, err = newGPIORegMMap()
 		if err != nil {
 			panic(err)
 		}
 	}
-	return mmaped_gpio_register_
+	return mmapped_gpio_register_
 }
 
 //careful with this function! never call it
 //if there's a chance some routine might still be using fast gpios
 //If in Doubt: Never Call It
 func MMappedGPIOCleanup() {
-	if mmaped_gpio_register_ != nil {
-		mmaped_gpio_register_.close()
+	if mmapped_gpio_register_ != nil {
+		mmapped_gpio_register_.close()
 	}
 }
 

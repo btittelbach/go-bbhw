@@ -25,7 +25,7 @@ type MMappedGPIOCollectionFactory struct {
 
 // Create a collection of GPIOs.
 // Doubles as factory for the MMappedGPIOInCollection type.
-func NewMMapedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory) {
+func NewMMappedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory) {
 	mmapreg := getgpiommap()
 	gpiocf = new(MMappedGPIOCollectionFactory)
 	gpiocf.gpios_to_set = make([]uint32, len(mmapreg.memgpiochipreg32))
@@ -47,7 +47,7 @@ func (gpiocf *MMappedGPIOCollectionFactory) EndTransactionApplySetStates() {
 	defer gpiocf.lock.Unlock()
 	for i, _ := range gpiocf.gpios_to_clear {
 		if gpiocf.gpios_to_set[i] > 0 || gpiocf.gpios_to_clear[i] > 0 {
-			// only set registers which are known to be enabled (i.e. have been set by our code thus have had NewMMapedGPIO called, thus have been exported in sysfs and thus are provided with a clk by the CPU/Linux)
+			// only set registers which are known to be enabled (i.e. have been set by our code thus have had NewMMappedGPIO called, thus have been exported in sysfs and thus are provided with a clk by the CPU/Linux)
 			mmapreg.memgpiochipreg32[i][intgpio_cleardataout_o32_] = gpiocf.gpios_to_clear[i]
 			mmapreg.memgpiochipreg32[i][intgpio_setdataout_o32_] = gpiocf.gpios_to_set[i]
 		}
@@ -64,8 +64,8 @@ func (gpiocf *MMappedGPIOCollectionFactory) BeginTransactionRecordSetStates() {
 	gpiocf.record_changes = true
 }
 
-// Same as NewMMapedGPIO but part of a MMappedGPIOCollectionFactory
-func (gpiocf *MMappedGPIOCollectionFactory) NewMMapedGPIO(number uint, direction int) (gpio *MMappedGPIOInCollection) {
+// Same as NewMMappedGPIO but part of a MMappedGPIOCollectionFactory
+func (gpiocf *MMappedGPIOCollectionFactory) NewMMappedGPIO(number uint, direction int) (gpio *MMappedGPIOInCollection) {
 	NewSysfsGPIOOrPanic(number, direction).Close()
 	gpio = new(MMappedGPIOInCollection)
 	gpio.chipid, gpio.gpioid = calcGPIOAddrFromLinuxGPIONum(number)
@@ -74,7 +74,7 @@ func (gpiocf *MMappedGPIOCollectionFactory) NewMMapedGPIO(number uint, direction
 }
 
 func (gpiocf *MMappedGPIOCollectionFactory) NewGPIO(number uint, direction int) GPIOControllablePinInCollection {
-	return gpiocf.NewMMapedGPIO(number, direction)
+	return gpiocf.NewMMappedGPIO(number, direction)
 }
 
 /// ------------- MMappedGPIOInCollection Methods -------------------

@@ -12,7 +12,7 @@ import (
 func checkSysfsVersusMMapGPIO(gpionum uint, t *testing.T) {
 	chipid, gpioid := calcGPIOAddrFromLinuxGPIONum(gpionum)
 	t.Logf("Testing sysfs:gpio/gpio%d chip:gpio%d[%d]", gpionum, chipid, gpioid)
-	fg := NewMMapedGPIO(gpionum, OUT)
+	fg := NewMMappedGPIO(gpionum, OUT)
 	sg := NewSysfsGPIOOrPanic(gpionum, OUT)
 	defer sg.Close()
 	defer fg.Close()
@@ -79,7 +79,7 @@ func Test_FastGPIO(t *testing.T) {
 		t.Logf("test only works on BeagleBone")
 		return
 	}
-	// fg := NewMMapedGPIO(67, OUT)
+	// fg := NewMMappedGPIO(67, OUT)
 	// sg := NewSysfsGPIOOrPanic(67, OUT)
 	checkSysfsVersusMMapGPIO(2, t)
 	checkSysfsVersusMMapGPIO(3, t)
@@ -98,7 +98,7 @@ func Test_FastGPIO(t *testing.T) {
 func checkSysfsVersusActiveLowMMapGPIO(gpionum uint, t *testing.T) {
 	chipid, gpioid := calcGPIOAddrFromLinuxGPIONum(gpionum)
 	t.Logf("Testing sysfs:gpio/gpio%d chip:gpio%d[%d]", gpionum, chipid, gpioid)
-	fg := NewMMapedGPIO(gpionum, OUT)
+	fg := NewMMappedGPIO(gpionum, OUT)
 	sg := NewSysfsGPIOOrPanic(gpionum, OUT)
 	defer sg.Close()
 	defer fg.Close()
@@ -169,8 +169,8 @@ func Test_MmappedGPIOwCable(t *testing.T) {
 		t.Logf("test only works on BeagleBone")
 		return
 	}
-	outg := NewMMapedGPIO(67, OUT) //P8_8
-	ing := NewMMapedGPIO(66, IN)   //P8_7
+	outg := NewMMappedGPIO(67, OUT) //P8_8
+	ing := NewMMappedGPIO(66, IN)   //P8_7
 
 	// Test Direction
 	d1, err1 := outg.CheckDirection()
@@ -206,9 +206,9 @@ func Test_MmappedGPIOwCableInGoroutines(t *testing.T) {
 		t.Logf("test only works on BeagleBone")
 		return
 	}
-	outg := NewMMapedGPIO(67, OUT) //P8_8
+	outg := NewMMappedGPIO(67, OUT) //P8_8
 	outslow := NewSysfsGPIOOrPanic(67, OUT)
-	ing := NewMMapedGPIO(66, IN) //P8_7
+	ing := NewMMappedGPIO(66, IN) //P8_7
 
 	go outg.SetState(false)
 	time.Sleep(10 * time.Millisecond)

@@ -10,8 +10,8 @@ func Test_MethodOverriding(t *testing.T) {
 		t.Logf("test only works on BeagleBone")
 		return
 	}
-	gf := NewMMapedGPIOCollectionFactory()
-	g := gf.NewMMapedGPIO(67, OUT)
+	gf := NewMMappedGPIOCollectionFactory()
+	g := gf.NewMMappedGPIO(67, OUT)
 	g.SetStateNow(false)
 	if GetStateOrPanic(g) != false {
 		t.Fatal("real state is not false")
@@ -53,9 +53,9 @@ func Test_MethodOverriding(t *testing.T) {
 func checkSysfsVersusMMapGPIOFromCollection(gpionum uint, t *testing.T) {
 	chipid, gpioid := calcGPIOAddrFromLinuxGPIONum(gpionum)
 	t.Logf("Testing sysfs:gpio/gpio%d chip:gpio%d[%d]", gpionum, chipid, gpioid)
-	fg := NewMMapedGPIO(gpionum, OUT)
-	gf := NewMMapedGPIOCollectionFactory()
-	sg := gf.NewMMapedGPIO(gpionum, OUT)
+	fg := NewMMappedGPIO(gpionum, OUT)
+	gf := NewMMappedGPIOCollectionFactory()
+	sg := gf.NewMMappedGPIO(gpionum, OUT)
 
 	defer sg.Close()
 	defer fg.Close()
@@ -133,7 +133,7 @@ func Test_MMapGpioFromCollectionVersusSysfsGPIO(t *testing.T) {
 		t.Logf("test only works on BeagleBone")
 		return
 	}
-	// fg := NewMMapedGPIO(67, OUT)
+	// fg := NewMMappedGPIO(67, OUT)
 	// sg := NewSysfsGPIOOrPanic(67, OUT)
 	checkSysfsVersusMMapGPIOFromCollection(2, t)
 	checkSysfsVersusMMapGPIOFromCollection(3, t)
@@ -154,12 +154,12 @@ func Test_checkGPIO2Chip(t *testing.T) {
 		t.Logf("test only works on BeagleBone")
 		return
 	}
-	gf := NewMMapedGPIOCollectionFactory()
+	gf := NewMMappedGPIOCollectionFactory()
 	g := make([]*MMappedGPIOInCollection, 32)
 	for gpionum := uint(32) * 2; gpionum < 32*3; gpionum++ {
 		chipid, gpioid := calcGPIOAddrFromLinuxGPIONum(gpionum)
 		t.Logf("Creating gpio/gpio%d chip:gpio%d[%d]", gpionum, chipid, gpioid)
-		g[gpionum%32] = gf.NewMMapedGPIO(gpionum, OUT)
+		g[gpionum%32] = gf.NewMMappedGPIO(gpionum, OUT)
 	}
 	for i, gpio := range g {
 		t.Logf("Set gpio2[%d==%d] to true", i, gpio.gpioid)

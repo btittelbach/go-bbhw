@@ -91,7 +91,7 @@ Uses the memory mapped IO to directly interface with AM335x registers.
 Toggles GPIOs about 800 times faster than SysFS.
 
 ```go
-func NewMMapedGPIO(number uint, direction int) (gpio *MMappedGPIO)
+func NewMMappedGPIO(number uint, direction int) (gpio *MMappedGPIO)
     Instantinate a new and fast GPIO controlled using direct access to
     AM335x registers. Takes GPIO numer (same as in sysfs) and direction
     bbhw.IN or bbhw.OUT Only works on AM335x and address compatible SoCs
@@ -102,13 +102,13 @@ Same as MMappedGPIO, but part of a collection of GPIOs you can set all at once u
 Records SetState() calls after BeginTransactionRecordSetStates() has been called and delays their effect until EndTransactionApplySetStates() is called. Use it to toggle many GPIOs in the very same instant.
 
 ```go
-func NewMMapedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory)
+func NewMMappedGPIOCollectionFactory() (gpiocf *MMappedGPIOCollectionFactory)
     Create a collection of GPIOs. Doubles as factory for the
     MMappedGPIOInCollection type.
 ````
 ```go
-func (gpiocf *MMappedGPIOCollectionFactory) NewMMapedGPIO(number uint, direction int) (gpio *MMappedGPIOInCollection)
-    Same as NewMMapedGPIO but part of a MMappedGPIOCollectionFactory
+func (gpiocf *MMappedGPIOCollectionFactory) NewMMappedGPIO(number uint, direction int) (gpio *MMappedGPIOInCollection)
+    Same as NewMMappedGPIO but part of a MMappedGPIOCollectionFactory
 ```
 ## Keywords
 go golang raspberry beaglebone black white GPIO PWM fast mmap memory mapped am33xx am335xx serial tty serial raw rawtty pinmux 0x194 0x190 0x44E07000 cleardataout setdataout
