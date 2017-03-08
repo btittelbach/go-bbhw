@@ -20,6 +20,9 @@ func init() {
 }
 
 func makeFindDirHelperFunc(returnvalue *string, path_base string, target_re, interm_re *regexp.Regexp) func(string, os.FileInfo, error) error {
+	fmt.Println(path_base)
+	fmt.Println(target_re)
+	fmt.Println(interm_re)
 	return func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			return nil
@@ -27,6 +30,7 @@ func makeFindDirHelperFunc(returnvalue *string, path_base string, target_re, int
 		if path == path_base {
 			return nil
 		}
+		fmt.Println(path)
 		if target_re.MatchString(path) {
 			*returnvalue = path
 			return foundit_error_ //foundit
@@ -44,7 +48,7 @@ func findSlotsFile() (sfile string, err error) {
 		return slots_file_, nil
 	}
 	path_base := "/sys/devices"
-	path_re1 := "^" + path_base + "/bone_capemgr" + `\.\d+`
+	path_re1 := "^" + path_base + "(?:/platform)?/bone_capemgr" + `(?:\.\d+)?`
 	re1 := regexp.MustCompile(path_re1 + "$")
 	var tdir string
 	err = filepath.Walk(path_base, makeFindDirHelperFunc(&tdir, path_base, re1, nil))
@@ -60,15 +64,12 @@ func findSlotsFile() (sfile string, err error) {
 
 func findOverlayStateFile(dtb_name string) (sfile string, err error) {
 	path_base := "/sys/devices"
-	path_re1 := "^" + path_base + "/ocp" + `\.\d+`
-	path_re2 := path_re1 + "/" + dtb_name + `\.\d+`
-	var re2 *regexp.Regexp
-	re1 := regexp.MustCompile(path_re1 + "$")
-	re2, err = regexp.Compile(path_re2)
+	path_re1 := "^" + path_base + "(?:/platform)?/ocp" + `(?:\.\d+)?` + "/(?:ocp:)?" + dtb_name
+	re1 := regexp.MustCompile(path_re1)
 	if err != nil {
 		return
 	}
-	err = filepath.Walk(path_base, makeFindDirHelperFunc(&sfile, path_base, re2, re1))
+	err = filepath.Walk(path_base, makeFindDirHelperFunc(&sfile, path_base, re1, nil))
 	if err == foundit_error_ {
 		err = nil
 		sfile = sfile + "/state"
