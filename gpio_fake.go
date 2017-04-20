@@ -49,8 +49,8 @@ func (gpio *FakeGPIO) CheckDirection() (direction int, err error) {
 }
 
 func (gpio *FakeGPIO) SetDirection(direction int) error {
-	if !(direction == IN || direction == OUT) {
-		panic("direction neither IN nor OUT")
+	if !(direction == IN || direction == OUT || direction == IN_PULLDOWN || direction == IN_PULLUP) {
+		panic("direction value invalid")
 	}
 	gpio.dir = direction
 	return nil

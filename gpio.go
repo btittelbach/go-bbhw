@@ -34,6 +34,8 @@ type GPIOControllablePinInCollection interface {
 const (
 	IN = iota
 	OUT
+	IN_PULLDOWN
+	IN_PULLUP
 )
 
 type ADC interface {

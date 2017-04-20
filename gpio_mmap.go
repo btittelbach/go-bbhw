@@ -31,6 +31,10 @@ func NewMMappedGPIO(number uint, direction int) (gpio *MMappedGPIO) {
 func (gpio *MMappedGPIO) CheckDirection() (direction int, err error) {
 	mmapreg := getgpiommap()
 	input_enabled := mmapreg.memgpiochipreg[gpio.chipid][intgpio_output_enabled_+(gpio.gpioid/8)]&(1<<(gpio.gpioid%8)) > 0
+
+	//TODO: check pinmux_controlmodule_offset_ ddr_data0_ioctrl Register (offset = 1440h) and ddr_data1_ioctrl Register for pullup/pulldown
+	//TODO: or check bits in mux mask to return IN_PULLUP IN_PULLDOWN as well
+
 	if input_enabled {
 		return IN, nil
 	} else {

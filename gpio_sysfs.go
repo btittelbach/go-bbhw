@@ -110,6 +110,10 @@ func (gpio *SysfsGPIO) CheckDirection() (direction int, err error) {
 		direction = IN
 	} else if string(buf)[0:3] == "out" {
 		direction = OUT
+	} else if string(buf)[0:3] == "low" {
+		direction = IN_PULLDOWN
+	} else if string(buf)[0:4] == "high" {
+		direction = IN_PULLUP
 	} else {
 		err = fmt.Errorf("direction '%s' is neither in nor out !!!", buf)
 	}
@@ -126,10 +130,17 @@ func (gpio *SysfsGPIO) SetDirection(direction int) error {
 		return err
 	}
 	defer df.Close()
-	if direction == OUT {
-		fmt.Fprintln(df, "out")
-	} else {
+	switch direction {
+	case IN:
 		fmt.Fprintln(df, "in")
+	case OUT:
+		fmt.Fprintln(df, "out")
+	case IN_PULLDOWN:
+		fmt.Fprintln(df, "low")
+	case IN_PULLUP:
+		fmt.Fprintln(df, "high")
+	default:
+		return fmt.Errorf("Invalid Direction value")
 	}
 	return nil
 }
