@@ -12,31 +12,47 @@ import (
 
 var foundit_error_ error
 var ERROR_DTO_ALREADY_LOADED error
-var slots_file_ string
+var dtsslot_slots_file_ string
+var dtsslot_ocp_dir_ string = ""
+
+var dtsslot_path_ocp_regex_ *regexp.Regexp = regexp.MustCompile("^/sys/devices(?:/platform)?/ocp" + `(?:\.\d+)?`)
+var dtsslot_path_base_ string = "/sys/devices"
 
 func init() {
 	foundit_error_ = fmt.Errorf("Success")
 	ERROR_DTO_ALREADY_LOADED = fmt.Errorf("DeviceTreeOverlay is already loaded")
 }
 
-func makeFindDirHelperFunc(returnvalue *string, path_base string, target_re, interm_re *regexp.Regexp) func(string, os.FileInfo, error) error {
-	fmt.Println(path_base)
-	fmt.Println(target_re)
-	fmt.Println(interm_re)
+func findFile(basedir, searchdirregex, searchfilename string, maxdepth int) (sfile string, err error) {
+	var dir_regex *regexp.Regexp
+	if dir_regex, err = regexp.Compile(filepath.Join(basedir, searchdirregex)); err != nil {
+		return "", err
+	}
+	err = filepath.Walk(basedir, makeFindDirHelperFunc(&sfile, dir_regex, maxdepth))
+	if err == foundit_error_ {
+		err = nil
+	} else if err == nil {
+		err = fmt.Errorf("Directory Not Found: %s/%s", basedir, searchdirregex)
+		return
+	}
+	sfile = filepath.Join(sfile, searchfilename)
+	if _, err = os.Stat(sfile); os.IsNotExist(err) {
+		return "", err
+	}
+	return
+}
+
+func makeFindDirHelperFunc(returnvalue *string, target_re *regexp.Regexp, maxdepth int) func(string, os.FileInfo, error) error {
 	return func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			return nil
 		}
-		if path == path_base {
-			return nil
+		if len(filepath.SplitList(path)) > maxdepth {
+			return filepath.SkipDir
 		}
-		fmt.Println(path)
 		if target_re.MatchString(path) {
 			*returnvalue = path
 			return foundit_error_ //foundit
-		}
-		if interm_re != nil && !interm_re.MatchString(path) {
-			return filepath.SkipDir //skipdir if not like path_re1
 		}
 		return nil //continue walking
 	}
@@ -44,37 +60,50 @@ func makeFindDirHelperFunc(returnvalue *string, path_base string, target_re, int
 
 // Singelton Function .. unlikely that slot file moves between reboots
 func findSlotsFile() (sfile string, err error) {
-	if len(slots_file_) > 0 {
-		return slots_file_, nil
+	if len(dtsslot_slots_file_) > 0 {
+		return dtsslot_slots_file_, nil
 	}
-	path_base := "/sys/devices"
-	path_re1 := "^" + path_base + "(?:/platform)?/bone_capemgr" + `(?:\.\d+)?`
-	re1 := regexp.MustCompile(path_re1 + "$")
-	var tdir string
-	err = filepath.Walk(path_base, makeFindDirHelperFunc(&tdir, path_base, re1, nil))
-	if err == foundit_error_ {
-		err = nil
-		sfile = tdir + "/slots"
-	} else if err == nil {
+
+	sfile, err = findFile(dtsslot_path_base_, "(?:platform)?/bone_capemgr"+`(?:\.\d+)?`+"$", "slots", 5)
+
+	if err != nil {
 		err = fmt.Errorf("OverlaySlotsFile Not Found")
+		sfile = ""
+		return
 	}
-	slots_file_ = sfile
+	dtsslot_slots_file_ = sfile
+	return
+}
+
+func findOCPDir() (path string, err error) {
+	if len(dtsslot_ocp_dir_) > 0 {
+		return dtsslot_ocp_dir_, nil
+	} else {
+
+		err = filepath.Walk(dtsslot_path_base_, makeFindDirHelperFunc(&path, dtsslot_path_ocp_regex_, 6))
+		if err == foundit_error_ && len(path) > 0 {
+			dtsslot_ocp_dir_ = path
+			err = nil
+			return
+		} else if err == nil {
+			err = fmt.Errorf("OCP directory not found")
+		}
+	}
 	return
 }
 
 func findOverlayStateFile(dtb_name string) (sfile string, err error) {
-	path_base := "/sys/devices"
-	path_re1 := "^" + path_base + "(?:/platform)?/ocp" + `(?:\.\d+)?` + "/(?:ocp:)?" + dtb_name
-	re1 := regexp.MustCompile(path_re1)
-	if err != nil {
+	var ocp_dir string
+	if ocp_dir, err = findOCPDir(); err != nil {
 		return
 	}
-	err = filepath.Walk(path_base, makeFindDirHelperFunc(&sfile, path_base, re1, nil))
-	if err == foundit_error_ {
-		err = nil
-		sfile = sfile + "/state"
-	} else if err == nil {
-		err = fmt.Errorf("OverlayStateFile Not Found")
+
+	sfile, err = findFile(ocp_dir, "(?:ocp:)?"+dtb_name+"(?:_pinmux)?", "state", 7)
+
+	if err != nil {
+		err = fmt.Errorf("Overlay state file not found")
+		sfile = ""
+		return
 	}
 	return
 }
@@ -156,7 +185,10 @@ func RemoveDeviceTreeOverlay(dtb_name string) (err error) {
 	return
 }
 
-// Overlays like PyBBIO-gpio.* can, once loaded, be configured using file /sys/devices/ocp.\d/PyBBIO-gpio.*.\d\d/state
+// Newer Universal Overlays allow the pinmux to be set by writing
+// "gpio", "pwm", "default", "spi", "i2c", .. to the state file for a certain pin
+//
+// while overlays like PyBBIO-gpio.* can, once loaded, be configured using file /sys/devices/ocp.\d/PyBBIO-gpio.*.\d\d/state
 // usually the following values can be written to configure the state:
 // "mode_0b00101111" => INPUT, No Pullup/down
 // "mode_0b00110111" => INPUT, Pullup

@@ -17,16 +17,44 @@ type BBPWMPin struct {
 	fd_polarity *os.File
 }
 
-func findPWMDir(bbb_pin string) (tdir string, err error) {
-	path_base := "/sys/devices"
-	path_re1 := "^" + path_base + "/ocp" + `\.\d+`
-	path_re2 := path_re1 + "/(?:bs_)?pwm_test_" + bbb_pin + `(?:\.\d+)?`
-	re1 := regexp.MustCompile(path_re1 + "$")
-	re2, err := regexp.Compile(path_re2)
-	if err != nil {
+type pwmchip struct {
+	chip, pwm int
+}
+
+var pin_to_pwmchip_map_ = map[string]pwmchip{
+	"P9_14": pwmchip{2, 0}, //EHRPWM1A
+	"P9_16": pwmchip{2, 1}, //EHRPWM1B
+	"P9_21": pwmchip{0, 1}, //EHRPWM0B
+	"P9_22": pwmchip{0, 0}, //EHRPWM0A
+	"P9_28": pwmchip{7, 0}, //ECAPPWM2
+	"P9_29": pwmchip{0, 1}, //EHRPWM0B //same as P9_21
+	"P9_31": pwmchip{0, 0}, //EHRPWM0A //same as P9_22
+	"P9_42": pwmchip{6, 0}, //ECAPPWM0
+	"P8_13": pwmchip{4, 1}, //EHRPWM2B
+	"P8_19": pwmchip{4, 0}, //EHRPWM2A
+	"P8_34": pwmchip{2, 1}, //EHRPWM1B //same as P9_16
+	"P8_36": pwmchip{2, 0}, //EHRPWM1A //same as P9_14
+	"P8_45": pwmchip{4, 0}, //EHRPWM2A // same as P8_19
+	"P8_46": pwmchip{4, 1}, //EHRPWM2B // same as P8_13
+
+}
+
+func LoadOverlayForSysfsPWM() error {
+	err := AddDeviceTreeOverlayIfNotAlreadyLoaded("am33xx_pwm")
+	if err == ERROR_DTO_ALREADY_LOADED {
+		return nil
+	} else {
+		return err
+	}
+}
+
+func findPWMTestDir(bbb_pin string) (tdir string, err error) {
+	var ocp_dir string
+	if ocp_dir, err = findOCPDir(); err != nil {
 		return
 	}
-	err = filepath.Walk(path_base, makeFindDirHelperFunc(&tdir, path_base, re2, re1))
+	re1 := regexp.MustCompile(filepath.Join(ocp_dir, "(?:bs_)?pwm_test_"+bbb_pin+`(?:\.\d+)?`+"$"))
+	err = filepath.Walk(ocp_dir, makeFindDirHelperFunc(&tdir, re1, 5))
 	if err == foundit_error_ {
 		err = nil
 	} else if err == nil {
@@ -35,14 +63,70 @@ func findPWMDir(bbb_pin string) (tdir string, err error) {
 	return
 }
 
-// Example: StepperPWM, err = NewBBBPWM("P9_16")
-func NewBBBPWM(bbb_pin string) (pwm *BBPWMPin, err error) {
-	var pwm_path string
-	pwm_path, err = findPWMDir(bbb_pin)
+func findPWMChipDir(chipid int) (string, error) {
+	chipdir := fmt.Sprintf("/sys/class/pwm/pwmchip%d/", chipid)
+	if fst, err := os.Stat(chipdir); err == nil && fst != nil && fst.IsDir() {
+		return chipdir, nil
+	} else {
+		return "", fmt.Errorf("Directory for PWMChip %d Not Found", chipid)
+	}
+}
+
+func NewPWMChipPWM(chipid, pwmid int) (pwm *BBPWMPin, err error) {
+	var pwmchip_path string
+	pwmchip_path, err = findPWMChipDir(chipid)
 	if err != nil {
 		return
 	}
+	var exportfile *os.File
+	exportfile, err = os.OpenFile(filepath.Join(pwmchip_path, "export"), os.O_WRONLY|os.O_SYNC, 0666)
+	defer exportfile.Close()
+	var numwritten int
+	numwritten, err = exportfile.WriteString(fmt.Sprintf("%d\n", pwmid))
+	if err != nil {
+		return
+	}
+	if numwritten < 2 {
+		return nil, fmt.Errorf("Could not export pwm %d,%d", chipid, pwmid)
+	}
+	pwm_path := filepath.Join(pwmchip_path, fmt.Sprintf("pwm%d", pwmid))
 	pwm = new(BBPWMPin)
+	pwm.fd_period, err = os.OpenFile(filepath.Join(pwm_path, "/period"), os.O_RDWR|os.O_SYNC, 0666)
+	if err != nil {
+		return
+	}
+	pwm.fd_duty, err = os.OpenFile(filepath.Join(pwm_path, "/duty_cycle"), os.O_RDWR|os.O_SYNC, 0666)
+	if err != nil {
+		pwm.fd_period.Close()
+		return
+	}
+	pwm.fd_polarity, err = os.OpenFile(filepath.Join(pwm_path, "/polarity"), os.O_RDWR|os.O_SYNC, 0666)
+	if err != nil {
+		pwm.fd_period.Close()
+		pwm.fd_duty.Close()
+		return
+	}
+	pwm.SetPolarity(false)
+	return
+}
+
+// Example: StepperPWM, err = NewBBBPWM("P9_16")
+func NewBBBPWM(bbb_pin string) (pwm *BBPWMPin, err error) {
+	var pwm_path string
+	pwm_path, err = findPWMTestDir(bbb_pin)
+	if err != nil {
+		if pwmchip, lookup_ok := pin_to_pwmchip_map_[bbb_pin]; lookup_ok {
+			return NewPWMChipPWM(pwmchip.chip, pwmchip.pwm)
+		}
+	}
+	pwm = new(BBPWMPin)
+	var pwm_enable *os.File
+	pwm_enable, err = os.OpenFile(pwm_path+"/enable", os.O_RDWR|os.O_SYNC, 0666)
+	if err != nil {
+		return
+	}
+	defer pwm_enable.Close()
+	pwm_enable.WriteString("1\n")
 	pwm.fd_period, err = os.OpenFile(pwm_path+"/period", os.O_RDWR|os.O_SYNC, 0666)
 	if err != nil {
 		return

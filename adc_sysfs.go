@@ -16,20 +16,29 @@ type SysfsADC struct {
 	err    error
 }
 
+func LoadOverlayForSysfsADC() error {
+	err := AddDeviceTreeOverlayIfNotAlreadyLoaded("BB-ADC")
+	if err == ERROR_DTO_ALREADY_LOADED {
+		return nil
+	} else {
+		return err
+	}
+}
+
 // Instantinate a new ADC to read through sysfs. Takes ADC AIN numer (same as in sysfs)
 func NewSysfsADC(number uint) (adc *SysfsADC, err error) {
 	adc = new(SysfsADC)
 	adc.Number = number
-	ain := fmt.Sprintf("AIN%d", number)
+	ain := fmt.Sprintf("in_voltage%d_raw", number)
 
 	var adc_dir string
-	adc_dir, err = findADCDir(ain)
+	adc_dir, err = findTSCADCDir()
 	if err != nil {
 		return
 	}
 
 	//check if file really exists and open
-	adc.fd, err = os.OpenFile(fmt.Sprintf("%s/%s", adc_dir, ain), os.O_RDONLY|os.O_SYNC, 0666)
+	adc.fd, err = os.OpenFile(filepath.Join(adc_dir, ain), os.O_RDONLY|os.O_SYNC, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -85,20 +94,26 @@ func (adc *SysfsADC) ReadValueCheckError() (value uint16, err error) {
 	return
 }
 
-func findADCDir(ain string) (tdir string, err error) {
-	path_base := "/sys/devices"
-	path_re1 := "^" + path_base + "/ocp" + `\.\d+`
-	path_re2 := path_re1 + `/.*` + ain + `\.\d+`
-	re1 := regexp.MustCompile(path_re1 + "$")
-	re2, err := regexp.Compile(path_re2)
-	if err != nil {
+func findTSCADCDir() (adcdir string, err error) {
+	var ocp_dir string
+	if ocp_dir, err = findOCPDir(); err != nil {
 		return
 	}
-	err = filepath.Walk(path_base, makeFindDirHelperFunc(&tdir, path_base, re2, re1))
+	adcdir = filepath.Join(ocp_dir, "44e0d000.tscadc/TI-am335x-adc/iio:device0/")
+	return
+}
+
+func findPyADCDir(ain string) (tdir string, err error) {
+	var ocp_dir string
+	if ocp_dir, err = findOCPDir(); err != nil {
+		return
+	}
+	re1 := regexp.MustCompile(filepath.Join(ocp_dir, `.*`+ain+`\.\d+`+"$"))
+	err = filepath.Walk(ocp_dir, makeFindDirHelperFunc(&tdir, re1, 5))
 	if err == foundit_error_ {
 		err = nil
 	} else if err == nil {
-		err = fmt.Errorf("NotFound")
+		err = fmt.Errorf("ADC Directory for %s Not Found", ain)
 	}
 	return
 }
