@@ -22,20 +22,23 @@ type pwmchip struct {
 }
 
 var pin_to_pwmchip_map_ = map[string]pwmchip{
-	"P9_14": pwmchip{2, 0}, //EHRPWM1A
-	"P9_16": pwmchip{2, 1}, //EHRPWM1B
-	"P9_21": pwmchip{0, 1}, //EHRPWM0B
 	"P9_22": pwmchip{0, 0}, //EHRPWM0A
-	"P9_28": pwmchip{7, 0}, //ECAPPWM2
-	"P9_29": pwmchip{0, 1}, //EHRPWM0B //same as P9_21
 	"P9_31": pwmchip{0, 0}, //EHRPWM0A //same as P9_22
-	"P9_42": pwmchip{6, 0}, //ECAPPWM0
-	"P8_13": pwmchip{4, 1}, //EHRPWM2B
-	"P8_19": pwmchip{4, 0}, //EHRPWM2A
-	"P8_34": pwmchip{2, 1}, //EHRPWM1B //same as P9_16
+	"P9_21": pwmchip{0, 1}, //EHRPWM0B
+	"P9_29": pwmchip{0, 1}, //EHRPWM0B //same as P9_21
+
+	"P9_14": pwmchip{2, 0}, //EHRPWM1A
 	"P8_36": pwmchip{2, 0}, //EHRPWM1A //same as P9_14
+	"P9_16": pwmchip{2, 1}, //EHRPWM1B
+	"P8_34": pwmchip{2, 1}, //EHRPWM1B //same as P9_16
+
+	"P8_19": pwmchip{4, 0}, //EHRPWM2A
 	"P8_45": pwmchip{4, 0}, //EHRPWM2A // same as P8_19
+	"P8_13": pwmchip{4, 1}, //EHRPWM2B
 	"P8_46": pwmchip{4, 1}, //EHRPWM2B // same as P8_13
+
+	"P9_42": pwmchip{6, 0}, //ECAPPWM0
+	"P9_28": pwmchip{7, 0}, //ECAPPWM2
 
 }
 
