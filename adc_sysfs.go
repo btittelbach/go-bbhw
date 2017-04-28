@@ -56,7 +56,7 @@ func NewSysfsADCOrPanic(number uint) (adc *SysfsADC) {
 }
 
 //returns raw SysFs Value.
-// In case of BeagleBoneBlack that means actual measured voltage in mV
+// In case of new kernel 4.4 that means raw value which we convert to actual mV
 func (adc *SysfsADC) ReadValue() (value uint16) {
 	if adc == nil {
 		panic("adc == nil")
@@ -78,7 +78,7 @@ func (adc *SysfsADC) ReadValue() (value uint16) {
 	var value64 uint64
 	value64, adc.err = strconv.ParseUint(string(buf[0:numread-1]), 10, 16)
 
-	return uint16(value64)
+	return uint16(value64 * 1800 / 4096) //4096 means 1.8V means 1800mV
 }
 
 func (adc *SysfsADC) CheckErrorOccurred() error {
