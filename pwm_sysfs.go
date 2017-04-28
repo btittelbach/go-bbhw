@@ -72,12 +72,7 @@ func findPWMChipDir(chipid int) (string, error) {
 	}
 }
 
-func NewPWMChipPWM(chipid, pwmid int) (pwm *BBPWMPin, err error) {
-	var pwmchip_path string
-	pwmchip_path, err = findPWMChipDir(chipid)
-	if err != nil {
-		return
-	}
+func exportPWMonPWMChip(pwmchip_path string, pwmid int) (err error) {
 	var exportfile *os.File
 	exportfile, err = os.OpenFile(filepath.Join(pwmchip_path, "export"), os.O_WRONLY|os.O_SYNC, 0666)
 	defer exportfile.Close()
@@ -87,9 +82,25 @@ func NewPWMChipPWM(chipid, pwmid int) (pwm *BBPWMPin, err error) {
 		return
 	}
 	if numwritten < 2 {
-		return nil, fmt.Errorf("Could not export pwm %d,%d", chipid, pwmid)
+		return fmt.Errorf("Could not export pwm %d in %s", pwmid, pwmchip_path)
+	}
+	return nil
+}
+
+func NewPWMChipPWM(chipid, pwmid int) (pwm *BBPWMPin, err error) {
+	var pwmchip_path string
+	pwmchip_path, err = findPWMChipDir(chipid)
+	if err != nil {
+		return
 	}
 	pwm_path := filepath.Join(pwmchip_path, fmt.Sprintf("pwm%d", pwmid))
+	if !doesPathExist(pwm_path) {
+		//export pwm only if pwm is not alreay exported
+		//otherwise kernel will return error
+		if err = exportPWMonPWMChip(pwmchip_path, pwmid); err != nil {
+			return
+		}
+	}
 	pwm = new(BBPWMPin)
 	pwm.fd_period, err = os.OpenFile(filepath.Join(pwm_path, "/period"), os.O_RDWR|os.O_SYNC, 0666)
 	if err != nil {

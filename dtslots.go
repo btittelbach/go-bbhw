@@ -23,6 +23,11 @@ func init() {
 	ERROR_DTO_ALREADY_LOADED = fmt.Errorf("DeviceTreeOverlay is already loaded")
 }
 
+func doesPathExist(name string) bool {
+	_, err := os.Stat(name)
+	return err == nil || !os.IsNotExist(err)
+}
+
 func findFile(basedir, searchdirregex, searchfilename string, maxdepth int) (sfile string, err error) {
 	var dir_regex *regexp.Regexp
 	if dir_regex, err = regexp.Compile(filepath.Join(basedir, searchdirregex)); err != nil {
@@ -36,7 +41,7 @@ func findFile(basedir, searchdirregex, searchfilename string, maxdepth int) (sfi
 		return
 	}
 	sfile = filepath.Join(sfile, searchfilename)
-	if _, err = os.Stat(sfile); os.IsNotExist(err) {
+	if !doesPathExist(sfile) {
 		return "", err
 	}
 	return
