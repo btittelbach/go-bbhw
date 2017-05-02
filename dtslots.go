@@ -47,6 +47,23 @@ func findFile(basedir, searchdirregex, searchfilename string, maxdepth int) (sfi
 	return
 }
 
+func findFileInSubDirectory(basedir, dirglobexpr string, searchfilename string) (sfile string, err error) {
+	var slist []string
+	slist, err = filepath.Glob(filepath.Join(basedir, dirglobexpr))
+	if err != nil {
+		return
+	}
+	for _, path := range slist {
+		sfile = filepath.Join(path, searchfilename)
+		if doesPathExist(sfile) {
+			return
+		}
+	}
+	sfile = ""
+	err = fmt.Errorf("findFileInSubDirectory(%s,%s,%s) could not be found", basedir, dirglobexpr, searchfilename)
+	return
+}
+
 func makeFindDirHelperFunc(returnvalue *string, target_re *regexp.Regexp, maxdepth int) func(string, os.FileInfo, error) error {
 	return func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
@@ -103,7 +120,8 @@ func findOverlayStateFile(dtb_name string) (sfile string, err error) {
 		return
 	}
 
-	sfile, err = findFile(ocp_dir, "(?:ocp:)?"+dtb_name+"(?:_pinmux)?", "state", 7)
+	// sfile, err = findFile(ocp_dir, "(?:ocp:)?"+dtb_name+"(?:_pinmux)?", "state", 7)
+	sfile, err = findFileInSubDirectory(ocp_dir, "*"+dtb_name+"*", "state")
 
 	if err != nil {
 		err = fmt.Errorf("Overlay state file not found")
