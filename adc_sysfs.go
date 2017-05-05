@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 // SysFS managed ADCs ------------------------------------
@@ -23,6 +24,22 @@ func LoadOverlayForSysfsADC() error {
 	} else {
 		return err
 	}
+}
+
+func WaitUntilSysFSADCRunning() error {
+	adc_dir, err := findTSCADCDir()
+	if err != nil {
+		return err
+	}
+	adcpath := filepath.Join(adc_dir, "in_voltage0_raw")
+	for wait := 200; wait > 0; wait-- {
+		if doesPathExist(adcpath) {
+			break
+		} else {
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+	return nil
 }
 
 // Instantinate a new ADC to read through sysfs. Takes ADC AIN numer (same as in sysfs)
