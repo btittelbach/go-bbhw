@@ -105,6 +105,13 @@ func NewPWMChipPWM(chipid, pwmid int) (pwm *BBPWMPin, err error) {
 		}
 	}
 	pwm = new(BBPWMPin)
+	var pwm_enable *os.File
+	pwm_enable, err = os.OpenFile(filepath.Join(pwm_path, "/enable"), os.O_RDWR|os.O_SYNC, 0666)
+	if err != nil {
+		return
+	}
+	defer pwm_enable.Close()
+	pwm_enable.WriteString("1\n")
 	pwm.fd_period, err = os.OpenFile(filepath.Join(pwm_path, "/period"), os.O_RDWR|os.O_SYNC, 0666)
 	if err != nil {
 		return
